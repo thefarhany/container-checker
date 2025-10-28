@@ -462,7 +462,7 @@ export default async function AdminContainerDetailPage({ params }: PageProps) {
                     {Object.entries(responsesByCategory).map(
                       ([categoryName, items]: [string, any]) => (
                         <div key={categoryName} className="space-y-3">
-                          <h3 className="text-base font-bold text-gray-900 bg-blue-600 text-white px-4 py-2 rounded-lg">
+                          <h3 className="text-base font-bold text-gray-900 bg-blue-600 px-4 py-2 rounded-lg">
                             {categoryName}
                           </h3>
                           <div className="space-y-2">

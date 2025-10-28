@@ -2,6 +2,7 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import DeleteIconButton from "@/components/security/dashboard/DeleteIconButton";
+import DateFilterButton from "@/components/DateFilterButton";
 import Link from "next/link";
 import {
   Package,
@@ -16,9 +17,31 @@ import {
   ArrowUpRight,
 } from "lucide-react";
 
-async function getInspections(userId: string) {
+interface PageProps {
+  searchParams: Promise<{
+    date?: string;
+  }>;
+}
+
+async function getInspections(userId: string, selectedDate?: string) {
+  let whereClause: any = { userId };
+
+  if (selectedDate) {
+    const filterDate = new Date(selectedDate);
+    const startOfDay = new Date(filterDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(filterDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    whereClause.inspectionDate = {
+      gte: startOfDay,
+      lte: endOfDay,
+    };
+  }
+
   return await prisma.securityCheck.findMany({
-    where: { userId },
+    where: whereClause,
     include: {
       container: {
         include: {
@@ -177,7 +200,6 @@ function InspectionRow({ inspection }: { inspection: any }) {
         </div>
       </td>
 
-      {/* Status */}
       <td className="text-center px-4 lg:px-6 py-3 lg:py-4">
         {hasChecker ? (
           <span className="inline-flex items-center gap-1.5 px-2.5 lg:px-3 py-1 lg:py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs lg:text-sm font-medium">
@@ -194,7 +216,6 @@ function InspectionRow({ inspection }: { inspection: any }) {
         )}
       </td>
 
-      {/* Actions */}
       <td className="mx-auto px-4 lg:px-6 py-3 lg:py-4">
         <div className="flex items-center justify-center gap-1 lg:gap-2">
           <Link
@@ -218,19 +239,21 @@ function InspectionRow({ inspection }: { inspection: any }) {
   );
 }
 
-export default async function SecurityDashboard() {
+export default async function SecurityDashboard({ searchParams }: PageProps) {
   const session = await getSession();
   if (!session) return null;
 
+  const resolvedParams = await searchParams;
+  const selectedDate = resolvedParams.date;
+
   const [inspections, stats] = await Promise.all([
-    getInspections(session.userId),
+    getInspections(session.userId, selectedDate),
     getStatistics(session.userId),
   ]);
 
   return (
     <DashboardLayout session={session}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50">
-        {/* Header */}
         <div className="border-b border-slate-200 sticky top-0 z-10 backdrop-blur-sm bg-white/80">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -239,27 +262,28 @@ export default async function SecurityDashboard() {
                   Dashboard Security
                 </h1>
                 <p className="text-slate-600 mt-1">
-                  Selamat datang kembali,{" "}
+                  Selamat datang kembali,
                   <span className="font-semibold text-slate-900">
                     {session.name}
                   </span>
                 </p>
               </div>
-              <Link
-                href="/security/inspection/new"
-                className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-3 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5"
-              >
-                <Plus className="w-5 h-5" />
-                <span className="hidden sm:inline">Pemeriksaan Baru</span>
-                <span className="sm:hidden">Baru</span>
-              </Link>
+              <div className="flex items-center gap-3">
+                <DateFilterButton />
+                <Link
+                  href="/security/inspection/new"
+                  className="inline-flex items-center justify-center gap-2 text-md bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold px-6 py-2 rounded-lg"
+                >
+                  <Plus className="w-5 h-5" />
+                  <span className="hidden sm:inline">Pemeriksaan Baru</span>
+                  <span className="sm:hidden">Baru</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Statistics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-8">
             <StatCard
               icon={Package}
@@ -299,7 +323,6 @@ export default async function SecurityDashboard() {
             />
           </div>
 
-          {/* Inspections Table */}
           <div className="bg-white rounded-xl lg:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100/50">
               <div className="flex items-center justify-between">

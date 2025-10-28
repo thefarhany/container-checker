@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import DashboardLayout from "@/components/Dashboard";
-import CreateUserForm from "@/components/admin/CreateUserForm";
+import CreateUserForm from "@/components/admin/users/CreateUserForm";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 

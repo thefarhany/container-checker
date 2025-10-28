@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  name           String
+  role           UserRole
+  password       String
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  checkerData    CheckerData[]
+  securityChecks SecurityCheck[]
+
+  @@map("users")
+}
+
+model Container {
+  id             String         @id @default(uuid())
+  containerNo    String         @unique
+  companyName    String
+  sealNo         String
+  plateNo        String
+  inspectionDate DateTime
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  checkerData    CheckerData?
+  securityCheck  SecurityCheck?
+
+  @@map("containers")
+}
+
+model ChecklistCategory {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  description String?
+  order       Int             @unique
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       ChecklistItem[]
+
+  @@map("checklist_categories")
+}
+
+model ChecklistItem {
+  id          String                  @id @default(uuid())
+  categoryId  String
+  itemText    String
+  description String?
+  order       Int
+  isActive    Boolean                 @default(true)
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  category    ChecklistCategory       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  responses   SecurityCheckResponse[]
+
+  @@unique([categoryId, order])
+  @@map("checklist_items")
+}
+
+model SecurityCheck {
+  id             String                  @id @default(uuid())
+  containerId    String                  @unique
+  userId         String
+  remarks        String?
+  inspectorName  String
+  inspectionDate DateTime
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  photos         Photo[]
+  responses      SecurityCheckResponse[]
+  container      Container               @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  user           User                    @relation(fields: [userId], references: [id])
+
+  @@map("security_checks")
+}
+
+model SecurityCheckResponse {
+  id              String        @id @default(uuid())
+  securityCheckId String
+  checklistItemId String
+  notes           String?
+  checked         Boolean       @default(true)
+  checklistItem   ChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  securityCheck   SecurityCheck @relation(fields: [securityCheckId], references: [id], onDelete: Cascade)
+
+  @@unique([securityCheckId, checklistItemId])
+  @@map("security_check_responses")
+}
+
+model CheckerData {
+  id          String    @id @default(uuid())
+  containerId String    @unique
+  userId      String
+  utcNo       String    @unique
+  remarks     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  container   Container @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+  photos      Photo[]
+
+  @@map("checker_data")
+}
+
+model Photo {
+  id              String         @id @default(uuid())
+  url             String
+  filename        String
+  securityCheckId String?
+  checkerDataId   String?
+  uploadedAt      DateTime       @default(now())
+  checkerData     CheckerData?   @relation(fields: [checkerDataId], references: [id], onDelete: Cascade)
+  securityCheck   SecurityCheck? @relation(fields: [securityCheckId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
+}
+
+enum UserRole {
+  SECURITY
+  CHECKER
+  ADMIN
+}

@@ -69,12 +69,10 @@ async function getContainerDetail(id: string) {
   return container;
 }
 
-// Component untuk menampilkan checklist item dengan catatan Security
 function ChecklistItemDisplay({
   itemText,
   notes,
   checked,
-  number,
 }: {
   itemText: string;
   notes: string | null;
@@ -82,35 +80,41 @@ function ChecklistItemDisplay({
   number: number;
 }) {
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-sm transition-shadow">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-sm font-semibold text-gray-700">
-          {number}
-        </div>
-        <div className="flex-1">
-          <div className="flex items-start justify-between gap-3">
-            <p className="text-sm text-gray-900 flex-1">{itemText}</p>
-            {checked ? (
-              <span className="flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full whitespace-nowrap">
-                <CheckCircle2 className="w-3 h-3" />
-                Diperiksa
-              </span>
-            ) : (
-              <span className="flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full whitespace-nowrap">
-                <XCircle className="w-3 h-3" />
-                Belum
-              </span>
-            )}
+    <div className="flex items-start gap-3 rounded-lg border border-gray-200 bg-white p-4">
+      <div className="flex-shrink-0">
+        <CheckCircle2 className="h-5 w-5 text-green-600" />
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-900">{itemText}</p>
+        {checked ? (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Diperiksa
+            </span>
           </div>
-          {notes && (
-            <div className="mt-2 p-2 bg-blue-50 border border-blue-100 rounded text-xs text-gray-700">
-              <span className="font-medium text-blue-900">
-                Catatan Security:
-              </span>
-              <p className="mt-1">{notes}</p>
+        ) : (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+              <XCircle className="h-3.5 w-3.5" />
+              Tidak Diperiksa
+            </span>
+          </div>
+        )}
+        {notes && (
+          <div className="mt-2 rounded-md bg-amber-50 border border-amber-200 p-3">
+            <div className="flex gap-2">
+              <StickyNote className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs font-medium text-amber-800">
+                  Catatan Security:
+                </p>
+                <p className="mt-1 text-xs text-amber-700">{notes}</p>
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -382,7 +386,6 @@ export default async function AdminContainerDetailPage({ params }: PageProps) {
                           className="object-cover group-hover:scale-105 transition-transform"
                           unoptimized
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity" />
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <p className="text-white text-xs truncate">
                             {photo.filename}
@@ -505,7 +508,6 @@ export default async function AdminContainerDetailPage({ params }: PageProps) {
                           className="object-cover group-hover:scale-105 transition-transform"
                           unoptimized
                         />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-opacity" />
                         <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <p className="text-white text-xs truncate">
                             {photo.filename}

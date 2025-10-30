@@ -172,7 +172,7 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           {/* Statistics Cards */}
-          <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 -z-20">
             <StatCard
               icon={Package}
               label="Total Kontainer"

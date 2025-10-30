@@ -24,7 +24,7 @@ interface PageProps {
     status?: string;
     dateFrom?: string;
     dateTo?: string;
-    date?: string; // Tambahkan parameter date untuk quick filter
+    date?: string;
   }>;
 }
 
@@ -57,10 +57,8 @@ async function getAllContainers(filters: {
 }) {
   const { search, status, dateFrom, dateTo, date } = filters;
 
-  // Build where clause untuk filter tanggal
   let whereClause: any = {};
 
-  // Quick date filter (dari DateFilterButton)
   if (date) {
     const filterDate = new Date(date);
     const startOfDay = new Date(filterDate);
@@ -104,7 +102,6 @@ async function getAllContainers(filters: {
 
   let filtered = containers;
 
-  // Search filter
   if (search) {
     const searchLower = search.toLowerCase();
     filtered = filtered.filter(
@@ -116,14 +113,12 @@ async function getAllContainers(filters: {
     );
   }
 
-  // Status filter
   if (status === "pending") {
     filtered = filtered.filter((c) => !c.checkerData);
   } else if (status === "checked") {
     filtered = filtered.filter((c) => !!c.checkerData);
   }
 
-  // Date range filter (from advanced filter form)
   if (dateFrom) {
     const fromDate = new Date(dateFrom);
     fromDate.setHours(0, 0, 0, 0);
@@ -196,12 +191,11 @@ export default async function CheckerDashboardPage({
     resolvedParams.status ||
     resolvedParams.dateFrom ||
     resolvedParams.dateTo ||
-    resolvedParams.date; // Tambahkan date filter check
+    resolvedParams.date;
 
   return (
     <DashboardLayout session={session}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-slate-100">
-        {/* Header */}
         <div className="border-b bg-white/80 backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -215,14 +209,12 @@ export default async function CheckerDashboardPage({
                 </p>
               </div>
 
-              {/* Date Filter Button */}
               <DateFilterButton />
             </div>
           </div>
         </div>
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Statistics Cards */}
           <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             <StatCard
               icon={Package}
@@ -257,7 +249,6 @@ export default async function CheckerDashboardPage({
             />
           </div>
 
-          {/* Filter Section */}
           <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-lg border border-gray-200">
             <div className="mb-4 flex items-center gap-2">
               <Filter className="h-5 w-5 text-gray-600" />
@@ -267,7 +258,6 @@ export default async function CheckerDashboardPage({
             </div>
 
             <form className="space-y-4">
-              {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
                 <input
@@ -275,13 +265,11 @@ export default async function CheckerDashboardPage({
                   name="search"
                   placeholder="Cari no. kontainer, perusahaan, plat, atau UTC..."
                   defaultValue={resolvedParams.search}
-                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm sm:text-base focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                  className="w-full rounded-lg border border-gray-300 py-2.5 pl-10 pr-4 text-sm sm:text-base text-black"
                 />
               </div>
 
-              {/* Filters Row */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Status Filter */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Status
@@ -289,7 +277,7 @@ export default async function CheckerDashboardPage({
                   <select
                     name="status"
                     defaultValue={resolvedParams.status || ""}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm sm:text-base focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm sm:text-base text-black"
                   >
                     <option value="">Semua Status</option>
                     <option value="pending">Menunggu</option>
@@ -297,7 +285,6 @@ export default async function CheckerDashboardPage({
                   </select>
                 </div>
 
-                {/* Date From */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Dari Tanggal
@@ -308,12 +295,11 @@ export default async function CheckerDashboardPage({
                       type="date"
                       name="dateFrom"
                       defaultValue={resolvedParams.dateFrom}
-                      className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm sm:text-base focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm sm:text-base text-black"
                     />
                   </div>
                 </div>
 
-                {/* Date To */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Sampai Tanggal
@@ -324,12 +310,11 @@ export default async function CheckerDashboardPage({
                       type="date"
                       name="dateTo"
                       defaultValue={resolvedParams.dateTo}
-                      className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm sm:text-base focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/20"
+                      className="w-full rounded-lg border border-gray-300 py-2.5 pl-9 pr-3 text-sm sm:text-base text-black"
                     />
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex items-end gap-2">
                   <button
                     type="submit"
@@ -347,7 +332,6 @@ export default async function CheckerDashboardPage({
               </div>
             </form>
 
-            {/* Filter Info */}
             {hasActiveFilter && (
               <div className="mt-4 rounded-lg bg-purple-50 border-l-4 border-purple-500 p-3">
                 <p className="text-sm text-purple-800">
@@ -375,7 +359,6 @@ export default async function CheckerDashboardPage({
             )}
           </div>
 
-          {/* Containers Table */}
           <div className="overflow-hidden rounded-2xl bg-white shadow-lg border border-gray-200">
             <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 sm:px-6 py-4">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900">
@@ -421,7 +404,6 @@ export default async function CheckerDashboardPage({
                           key={container.id}
                           className="transition-colors hover:bg-gray-50"
                         >
-                          {/* Container Info */}
                           <td className="px-3 sm:px-6 py-4">
                             <div>
                               <div className="text-xs sm:text-sm font-medium text-gray-900 break-all">
@@ -433,7 +415,6 @@ export default async function CheckerDashboardPage({
                             </div>
                           </td>
 
-                          {/* UTC Number */}
                           <td className="px-3 sm:px-6 py-4">
                             {checkerData ? (
                               <span className="text-xs sm:text-sm font-medium text-gray-900">
@@ -446,7 +427,6 @@ export default async function CheckerDashboardPage({
                             )}
                           </td>
 
-                          {/* Company */}
                           <td className="hidden sm:table-cell px-6 py-4">
                             <div className="flex items-center gap-2">
                               <Building2 className="h-4 w-4 text-gray-400 shrink-0" />
@@ -456,7 +436,6 @@ export default async function CheckerDashboardPage({
                             </div>
                           </td>
 
-                          {/* Status */}
                           <td className="px-3 sm:px-6 py-4">
                             {isChecked ? (
                               <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2 sm:px-3 py-1 text-xs font-medium text-green-800">
@@ -471,7 +450,6 @@ export default async function CheckerDashboardPage({
                             )}
                           </td>
 
-                          {/* Date */}
                           <td className="hidden md:table-cell px-6 py-4">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
                               <Calendar className="h-4 w-4 text-gray-400" />
@@ -485,7 +463,6 @@ export default async function CheckerDashboardPage({
                             </div>
                           </td>
 
-                          {/* Actions */}
                           <td className="px-3 sm:px-6 py-4">
                             <div className="flex items-center justify-center gap-2">
                               {isChecked ? (

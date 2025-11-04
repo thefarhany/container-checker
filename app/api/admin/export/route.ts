@@ -11,39 +11,60 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { containers, format, dateFrom, dateTo } = body;
+    const { containers, format } = body;
 
     // Prepare data for export
-    const exportData = containers.map((container: any) => ({
-      "No. Kontainer": container.containerNo,
-      "No. UTC": container.checkerData?.utcNo || "-",
-      Perusahaan: container.companyName,
-      "No. Segel": container.sealNo,
-      "No. Plat": container.plateNo,
-      "Tanggal Pemeriksaan": new Date(
-        container.inspectionDate
-      ).toLocaleDateString("id-ID"),
-      "Security Officer": container.securityCheck?.user.name || "-",
-      "Tanggal Security Check": container.securityCheck?.inspectionDate
-        ? new Date(container.securityCheck.inspectionDate).toLocaleDateString(
-            "id-ID"
-          )
-        : "-",
-      Checker: container.checkerData?.user.name || "-",
-      "Tanggal Checker": container.checkerData?.createdAt
-        ? new Date(container.checkerData.createdAt).toLocaleDateString("id-ID")
-        : "-",
-      "Status Security": container.securityCheck ? "Selesai" : "Pending",
-      "Status Checker": container.checkerData ? "Selesai" : "Pending",
-      "Status Keseluruhan":
-        container.securityCheck && container.checkerData
-          ? "Selesai"
-          : container.securityCheck
-          ? "Pending Checker"
-          : "Pending Security",
-      "Catatan Security": container.securityCheck?.remarks || "-",
-      "Catatan Checker": container.checkerData?.remarks || "-",
-    }));
+    const exportData = containers.map(
+      (container: {
+        containerNo: string;
+        companyName: string;
+        sealNo: string;
+        plateNo: string;
+        inspectionDate: Date;
+        checkerData?: {
+          utcNo: string;
+          user: { name: string };
+          remarks?: string;
+          createdAt: Date;
+        };
+        securityCheck?: {
+          user: { name: string };
+          inspectionDate: Date;
+          remarks?: string;
+        };
+      }) => ({
+        "No. Kontainer": container.containerNo,
+        "No. UTC": container.checkerData?.utcNo || "-",
+        Perusahaan: container.companyName,
+        "No. Segel": container.sealNo,
+        "No. Plat": container.plateNo,
+        "Tanggal Pemeriksaan": new Date(
+          container.inspectionDate
+        ).toLocaleDateString("id-ID"),
+        "Security Officer": container.securityCheck?.user.name || "-",
+        "Tanggal Security Check": container.securityCheck?.inspectionDate
+          ? new Date(container.securityCheck.inspectionDate).toLocaleDateString(
+              "id-ID"
+            )
+          : "-",
+        Checker: container.checkerData?.user.name || "-",
+        "Tanggal Checker": container.checkerData?.createdAt
+          ? new Date(container.checkerData.createdAt).toLocaleDateString(
+              "id-ID"
+            )
+          : "-",
+        "Status Security": container.securityCheck ? "Selesai" : "Pending",
+        "Status Checker": container.checkerData ? "Selesai" : "Pending",
+        "Status Keseluruhan":
+          container.securityCheck && container.checkerData
+            ? "Selesai"
+            : container.securityCheck
+            ? "Pending Checker"
+            : "Pending Security",
+        "Catatan Security": container.securityCheck?.remarks || "-",
+        "Catatan Checker": container.checkerData?.remarks || "-",
+      })
+    );
 
     if (format === "excel") {
       // Create Excel file

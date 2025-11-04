@@ -159,7 +159,7 @@ export default async function HistoryPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {checkedContainers.map((checked, index) => (
+                  {checkedContainers.map((checked) => (
                     <tr
                       key={checked.id}
                       className="hover:bg-gray-50 transition-colors"

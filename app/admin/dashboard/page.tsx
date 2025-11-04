@@ -14,6 +14,7 @@ import {
   Eye,
   BarChart3,
 } from "lucide-react";
+import { ElementType } from "react";
 
 interface PageProps {
   searchParams: Promise<{
@@ -22,7 +23,12 @@ interface PageProps {
 }
 
 async function getStatistics(selectedDate?: string) {
-  let whereClause: any = {};
+  const whereClause: {
+    inspectionDate?: {
+      gte: Date;
+      lte: Date;
+    };
+  } = {};
 
   if (selectedDate) {
     const filterDate = new Date(selectedDate);
@@ -95,7 +101,7 @@ function StatCard({
   linkText,
   linkHref,
 }: {
-  icon: any;
+  icon: ElementType;
   label: string;
   value: number;
   subtitle: string;

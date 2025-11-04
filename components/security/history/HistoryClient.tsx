@@ -29,7 +29,7 @@ interface Inspection {
     companyName: string;
     sealNo: string;
     plateNo: string;
-    checkerData: any | null;
+    checkerData: string | null;
   };
 }
 
@@ -232,12 +232,12 @@ export default function HistoryClient({
               <div className="flex flex-wrap gap-2">
                 {searchParams.search && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 text-sm font-medium rounded-lg">
-                    Pencarian: "{searchParams.search}"
+                    Pencarian: {searchParams.search}
                   </span>
                 )}
                 {searchParams.startDate && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg">
-                    Dari:{" "}
+                    Dari:
                     {new Date(searchParams.startDate).toLocaleDateString(
                       "id-ID"
                     )}
@@ -245,7 +245,7 @@ export default function HistoryClient({
                 )}
                 {searchParams.endDate && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-sm font-medium rounded-lg">
-                    Sampai:{" "}
+                    Sampai:
                     {new Date(searchParams.endDate).toLocaleDateString("id-ID")}
                   </span>
                 )}

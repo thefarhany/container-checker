@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Plus,
   ArrowUpRight,
+  LucideIcon,
 } from "lucide-react";
+import { Prisma } from "@prisma/client";
 
 interface PageProps {
   searchParams: Promise<{
@@ -24,7 +26,7 @@ interface PageProps {
 }
 
 async function getInspections(userId: string, selectedDate?: string) {
-  let whereClause: any = { userId };
+  const whereClause: Prisma.SecurityCheckWhereInput = { userId };
 
   if (selectedDate) {
     const filterDate = new Date(selectedDate);
@@ -114,7 +116,7 @@ function StatCard({
   iconColor,
   iconBg,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: number;
   subtitle: string;
@@ -156,7 +158,25 @@ function StatCard({
   );
 }
 
-function InspectionRow({ inspection }: { inspection: any }) {
+interface InspectionRowType {
+  id: string;
+  inspectionDate: Date;
+  createdAt: Date;
+  container: {
+    id: string;
+    containerNo: string;
+    sealNo: string;
+    companyName: string;
+    plateNo: string;
+    checkerData: {
+      id: string;
+      utcNo: string;
+      createdAt: Date;
+    } | null;
+  };
+}
+
+function InspectionRow({ inspection }: { inspection: InspectionRowType }) {
   const hasChecker = !!inspection.container.checkerData;
 
   return (

@@ -13,6 +13,7 @@ import {
   Mail,
   Calendar,
   Plus,
+  LucideIcon,
 } from "lucide-react";
 
 async function getUsers() {
@@ -29,7 +30,7 @@ function StatCard({
   iconBg,
   bgGradient,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: number;
   iconColor: string;

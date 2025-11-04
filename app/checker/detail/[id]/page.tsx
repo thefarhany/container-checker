@@ -22,7 +22,6 @@ import {
   StickyNote,
 } from "lucide-react";
 
-// ✅ PERBAIKAN 1: params harus Promise
 interface PageProps {
   params: Promise<{
     id: string;
@@ -73,7 +72,6 @@ async function getContainerDetail(id: string) {
   return container;
 }
 
-// Component untuk menampilkan checklist item dengan catatan Security
 function ChecklistItemDisplay({
   itemText,
   notes,
@@ -127,7 +125,6 @@ function ChecklistItemDisplay({
   );
 }
 
-// ✅ PERBAIKAN 2: Tambahkan async dan await params
 export default async function CheckerDetailPage({ params }: PageProps) {
   const session = await getSession();
 
@@ -135,7 +132,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
     redirect("/");
   }
 
-  // ✅ PERBAIKAN 3: AWAIT params
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
@@ -160,7 +156,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
   const securityCheck = container.securityCheck;
   const checkerData = container.checkerData;
 
-  // Group responses by category
   const responsesByCategory = securityCheck?.responses.reduce(
     (acc, response) => {
       const categoryName = response.checklistItem.category.name;
@@ -176,7 +171,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
   return (
     <DashboardLayout session={session}>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header with back button */}
         <div className="flex items-center gap-4">
           <Link
             href="/checker/dashboard"
@@ -202,7 +196,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
           )}
         </div>
 
-        {/* Status Alert */}
         {checkerData && securityCheck && (
           <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-r-lg">
             <div className="flex items-start gap-3">
@@ -236,7 +229,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Container Info */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-blue-600 to-blue-700 p-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -305,7 +297,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Checker Data */}
         {checkerData && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-4">
@@ -369,7 +360,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Security Check */}
         {securityCheck ? (
           <>
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -429,7 +419,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Checklist Results by Category */}
             {responsesByCategory &&
               Object.entries(responsesByCategory).map(
                 ([categoryName, responses]) => (
@@ -458,7 +447,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
                 )
               )}
 
-            {/* Foto Security */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="bg-gradient-to-r from-green-600 to-green-700 p-4">
                 <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -510,7 +498,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Foto Checker */}
         {checkerData && checkerData.photos.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-4">
@@ -545,7 +532,6 @@ export default async function CheckerDetailPage({ params }: PageProps) {
           </div>
         )}
 
-        {/* Checker Form (hanya tampil jika belum ada checkerData) */}
         {!checkerData && securityCheck && (
           <CheckerForm
             containerId={container.id}

@@ -57,16 +57,16 @@ export async function createInspection(formData: FormData): Promise<void> {
     }));
 
     const allChecked = responses.every((r) => r.checked === true);
+
     if (!allChecked) {
       throw new Error("Semua item checklist harus diperiksa sebelum submit");
     }
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
-    console.log("📸 Total valid photos:", validPhotos.length);
 
     if (validPhotos.length < 1) {
-      throw new Error("Minimal 5 foto harus diupload");
+      throw new Error("Minimal 1 foto harus diupload");
     }
 
     if (validPhotos.length > 20) {
@@ -76,7 +76,6 @@ export async function createInspection(formData: FormData): Promise<void> {
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
 
     for (const photo of validPhotos) {
-      console.log("📤 Uploading:", photo.name, "Size:", photo.size);
       const fileExt = photo.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()
         .toString(36)
@@ -86,17 +85,14 @@ export async function createInspection(formData: FormData): Promise<void> {
       const arrayBuffer = await photo.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const { data: uploadData, error: uploadError } =
-        await supabaseAdmin.storage
-          .from("container-photos")
-          .upload(filePath, buffer, {
-            contentType: photo.type,
-            upsert: false,
-          });
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("container-photos")
+        .upload(filePath, buffer, {
+          contentType: photo.type,
+          upsert: false,
+        });
 
       if (uploadError) {
-        console.error("❌ Upload error:", uploadError);
-
         if (uploadedPhotoUrls.length > 0) {
           const filePaths = uploadedPhotoUrls.map((p) =>
             p.url.split("/").slice(-2).join("/")
@@ -105,12 +101,12 @@ export async function createInspection(formData: FormData): Promise<void> {
             .from("container-photos")
             .remove(filePaths);
         }
+
         throw new Error(
           `Gagal upload foto ${photo.name}: ${uploadError.message}`
         );
       }
 
-      console.log("✅ Upload success:", uploadData.path);
       const { data: urlData } = supabaseAdmin.storage
         .from("container-photos")
         .getPublicUrl(filePath);
@@ -120,8 +116,6 @@ export async function createInspection(formData: FormData): Promise<void> {
         filename: photo.name,
       });
     }
-
-    console.log("✅ Total uploaded:", uploadedPhotoUrls.length);
 
     await prisma.$transaction(async (tx) => {
       const container = await tx.container.create({
@@ -157,17 +151,13 @@ export async function createInspection(formData: FormData): Promise<void> {
     });
 
     revalidatePath("/security/dashboard");
-    console.log("✅ Inspection created successfully");
+    redirect("/security/dashboard"); // ✅ DIPINDAHKAN KE DALAM TRY BLOCK
   } catch (error) {
-    console.error("❌ Error creating inspection:", error);
-
     if (error instanceof Error) {
       throw error;
     }
     throw new Error("Gagal menyimpan data pemeriksaan");
   }
-
-  redirect("/security/dashboard");
 }
 
 /**
@@ -206,9 +196,7 @@ export async function updateInspection(
 
     const inspectorName = formData.get("inspectorName") as string;
     const remarks = formData.get("remarks") as string;
-
     const deletedPhotoIds = formData.getAll("deletedPhotoIds") as string[];
-    console.log("🗑️ Photos to delete:", deletedPhotoIds);
 
     const checklistItems = await prisma.checklistItem.findMany({
       where: { isActive: true },
@@ -222,23 +210,16 @@ export async function updateInspection(
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
+
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
 
     const remainingPhotoCount =
       inspection.photos.length - deletedPhotoIds.length;
     const totalPhotoCount = remainingPhotoCount + validPhotos.length;
 
-    console.log("📊 Photo count:", {
-      existing: inspection.photos.length,
-      toDelete: deletedPhotoIds.length,
-      remaining: remainingPhotoCount,
-      toUpload: validPhotos.length,
-      total: totalPhotoCount,
-    });
-
     if (totalPhotoCount < 1) {
       throw new Error(
-        `Total foto minimal 5. Saat ini akan tersisa ${totalPhotoCount} foto.`
+        `Total foto minimal 1. Saat ini akan tersisa ${totalPhotoCount} foto.`
       );
     }
 
@@ -258,16 +239,14 @@ export async function updateInspection(
       const arrayBuffer = await photo.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const { data: uploadData, error: uploadError } =
-        await supabaseAdmin.storage
-          .from("container-photos")
-          .upload(filePath, buffer, {
-            contentType: photo.type,
-            upsert: false,
-          });
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("container-photos")
+        .upload(filePath, buffer, {
+          contentType: photo.type,
+          upsert: false,
+        });
 
       if (uploadError) {
-        console.error("❌ Upload error:", uploadError);
         throw new Error(`Gagal upload foto ${photo.name}`);
       }
 
@@ -279,7 +258,6 @@ export async function updateInspection(
         url: urlData.publicUrl,
         filename: photo.name,
       });
-      console.log("✅ Uploaded:", fileName);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -320,7 +298,6 @@ export async function updateInspection(
           await supabaseAdmin.storage
             .from("container-photos")
             .remove([filePath]);
-          console.log("🗑️ Deleted from storage:", filePath);
         }
 
         await tx.photo.deleteMany({
@@ -328,7 +305,6 @@ export async function updateInspection(
             id: { in: deletedPhotoIds },
           },
         });
-        console.log("✅ Deleted photos from database:", deletedPhotoIds.length);
       }
 
       if (uploadedPhotoUrls.length > 0) {
@@ -339,22 +315,18 @@ export async function updateInspection(
             filename: photo.filename,
           })),
         });
-        console.log("✅ Added new photos:", uploadedPhotoUrls.length);
       }
     });
 
     revalidatePath("/security/dashboard");
     revalidatePath(`/security/inspection/${inspectionId}`);
-    console.log("✅ Inspection updated successfully");
+    redirect("/security/dashboard"); // ✅ DIPINDAHKAN KE DALAM TRY BLOCK
   } catch (error) {
-    console.error("❌ Error updating inspection:", error);
     if (error instanceof Error) {
       throw error;
     }
     throw new Error("Gagal mengupdate data pemeriksaan");
   }
-
-  redirect("/security/dashboard");
 }
 
 /**
@@ -422,58 +394,37 @@ export async function deleteInspection(inspectionId: string) {
       });
     }
 
-    console.log(`📊 Total photos to delete: ${allPhotoUrls.length}`);
-
     await prisma.$transaction(async (tx) => {
       if (allPhotoUrls.length > 0) {
         try {
-          const { data, error } = await supabaseAdmin.storage
+          await supabaseAdmin.storage
             .from("container-photos")
             .remove(allPhotoUrls);
-
-          if (error) {
-            console.error("⚠️ Error deleting photos from storage:", error);
-          } else {
-            console.log(
-              `✅ Deleted ${allPhotoUrls.length} photos from storage`
-            );
-          }
-        } catch (photoError) {
-          console.error("⚠️ Storage deletion error:", photoError);
-        }
+        } catch {}
       }
 
       await tx.container.delete({
         where: { id: inspection.containerId },
       });
-
-      console.log("✅ Deleted container and all related data via CASCADE");
-      console.log(`   - Container ID: ${inspection.containerId}`);
-      console.log(`   - Container No: ${inspection.container.containerNo}`);
     });
 
     revalidatePath("/security/dashboard");
     revalidatePath("/security/inspections");
     revalidatePath("/checker/dashboard");
 
-    console.log("✅ Successfully deleted container:", inspection.containerId);
     return { success: true };
-  } catch (error) {
-    console.error("❌ Error deleting inspection:", error);
-
+  } catch (err) {
     let errorMessage = "Gagal menghapus data pemeriksaan";
-
-    if (error instanceof Error) {
-      if (error.message.includes("Foreign key constraint")) {
+    if (err instanceof Error) {
+      if (err.message.includes("Foreign key constraint")) {
         errorMessage =
           "Tidak dapat menghapus data karena masih memiliki relasi dengan data lain";
-      } else if (error.message.includes("Record to delete does not exist")) {
+      } else if (err.message.includes("Record to delete does not exist")) {
         errorMessage = "Data tidak ditemukan atau sudah dihapus";
       } else {
-        errorMessage = error.message;
+        errorMessage = err.message;
       }
     }
-
     return {
       success: false,
       error: errorMessage,
@@ -512,8 +463,7 @@ export async function deletePhoto(photoId: string) {
 
     revalidatePath("/security/dashboard");
     return { success: true };
-  } catch (error) {
-    console.error("❌ Error deleting photo:", error);
+  } catch {
     return { error: "Gagal menghapus foto" };
   }
 }

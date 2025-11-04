@@ -6,7 +6,6 @@ import Image from "next/image";
 import CheckerForm from "@/components/checker/CheckerForm";
 import {
   Package,
-  Clock,
   ImageIcon,
   CheckCircle2,
   XCircle,
@@ -60,7 +59,6 @@ async function getContainerData(id: string) {
   return container;
 }
 
-// Component untuk menampilkan checklist item dengan catatan Security
 function ChecklistItemDisplay({
   itemText,
   notes,
@@ -159,7 +157,6 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
     );
   }
 
-  // Group responses by category
   const responsesByCategory = securityCheck.responses.reduce(
     (acc, response) => {
       const categoryName = response.checklistItem.category.name;
@@ -175,7 +172,6 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
   return (
     <DashboardLayout session={session}>
       <div className="max-w-7xl mx-auto p-6 space-y-6">
-        {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl shadow-lg p-6 text-white">
           <div className="flex items-center gap-3 mb-2">
             <Shield className="w-8 h-8" />
@@ -190,7 +186,6 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Info Alert */}
         <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
           <div className="flex items-start gap-3">
             <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
@@ -206,7 +201,6 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Container Info */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-gray-700 to-gray-800 p-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -275,7 +269,6 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Security Check Info */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-green-600 to-green-700 p-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -331,9 +324,8 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Checklist Results by Category */}
         {Object.entries(responsesByCategory).map(
-          ([categoryName, responses], catIdx) => (
+          ([categoryName, responses]) => (
             <div
               key={categoryName}
               className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
@@ -360,7 +352,6 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
           )
         )}
 
-        {/* Photos from Security */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 p-4">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -400,8 +391,10 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Checker Form */}
-        <CheckerForm containerId={container.id} />
+        <CheckerForm
+          containerId={container.id}
+          containerNo={container.containerNo}
+        />
       </div>
     </DashboardLayout>
   );

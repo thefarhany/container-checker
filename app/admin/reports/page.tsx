@@ -13,7 +13,9 @@ import {
   Filter,
   CalendarDays,
   Building2,
+  LucideIcon,
 } from "lucide-react";
+import { Prisma } from "@prisma/client";
 
 interface PageProps {
   searchParams: Promise<{
@@ -30,7 +32,7 @@ async function getReportData(filters: {
 }) {
   const { dateFrom, dateTo, status } = filters;
 
-  let whereClause: any = {};
+  const whereClause: Prisma.ContainerWhereInput = {};
 
   if (dateFrom || dateTo) {
     whereClause.inspectionDate = {};
@@ -110,7 +112,7 @@ function StatCard({
   iconBg,
   bgGradient,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: number;
   iconColor: string;

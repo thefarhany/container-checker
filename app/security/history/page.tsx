@@ -10,6 +10,7 @@ import {
   Package,
   FileText,
   Eye,
+  LucideIcon,
 } from "lucide-react";
 
 async function getInspections(userId: string) {
@@ -33,7 +34,7 @@ function StatCard({
   iconColor,
   iconBg,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: number;
   iconColor: string;
@@ -56,7 +57,26 @@ function StatCard({
   );
 }
 
-function HistoryRow({ inspection }: { inspection: any }) {
+interface HistoryInspection {
+  id: string;
+  inspectionDate: Date;
+  createdAt: Date;
+  inspectorName: string;
+  container: {
+    id: string;
+    containerNo: string;
+    sealNo: string;
+    companyName: string;
+    plateNo: string;
+    checkerData: {
+      id: string;
+      utcNo: string;
+      createdAt: Date;
+    } | null;
+  };
+}
+
+function HistoryRow({ inspection }: { inspection: HistoryInspection }) {
   const hasChecker = !!inspection.container.checkerData;
 
   return (

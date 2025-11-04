@@ -15,8 +15,9 @@ import {
   Search,
   Filter,
   CalendarDays,
-  Edit,
+  LucideIcon,
 } from "lucide-react";
+import { Prisma } from "@prisma/client";
 
 interface PageProps {
   searchParams: Promise<{
@@ -57,7 +58,7 @@ async function getAllContainers(filters: {
 }) {
   const { search, status, dateFrom, dateTo, date } = filters;
 
-  let whereClause: any = {};
+  const whereClause: Prisma.ContainerWhereInput = {};
 
   if (date) {
     const filterDate = new Date(date);
@@ -143,7 +144,7 @@ function StatCard({
   iconBg,
   bgGradient,
 }: {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   value: number;
   subtitle: string;
@@ -468,7 +469,7 @@ export default async function CheckerDashboardPage({
                               {isChecked ? (
                                 <>
                                   <Link
-                                    href={`/checker/check/${container.id}`}
+                                    href={`/checker/detail/${container.id}`}
                                     className="inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-blue-600 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-blue-700"
                                   >
                                     <Eye className="h-3 w-3 sm:h-4 sm:w-4" />

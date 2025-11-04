@@ -9,40 +9,35 @@ import { revalidatePath } from "next/cache";
 export async function submitCheckerData(
   containerId: string,
   formData: FormData
-) {
+): Promise<void> {
   const session = await getSession();
   if (!session || session.role !== "CHECKER") {
-    return { error: "Unauthorized" };
+    throw new Error("Unauthorized");
   }
 
   try {
     const utcNo = formData.get("utcNo") as string;
     const remarks = formData.get("remarks") as string;
 
-    console.log("📋 Received data:");
-    console.log("  UTC No:", utcNo);
-    console.log("  Remarks:", remarks ? "Yes" : "No");
+    if (!utcNo) {
+      throw new Error("Nomor UTC harus diisi");
+    }
 
     const existingUTC = await prisma.checkerData.findUnique({
       where: { utcNo },
     });
 
     if (existingUTC) {
-      return { error: "Nomor UTC sudah digunakan. Gunakan nomor lain." };
+      throw new Error("Nomor UTC sudah digunakan. Gunakan nomor lain.");
     }
 
     const photos = formData.getAll("photos") as File[];
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
 
-    console.log("📸 Total photos to upload:", photos.length);
-
     for (const photo of photos) {
       if (!photo || photo.size === 0) {
-        console.log("⏭️ Skipping empty file");
         continue;
       }
-
-      console.log("📤 Uploading:", photo.name, "Size:", photo.size);
 
       const fileExt = photo.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()
@@ -53,22 +48,18 @@ export async function submitCheckerData(
       const arrayBuffer = await photo.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const { data: uploadData, error: uploadError } =
-        await supabaseAdmin.storage
-          .from("container-photos")
-          .upload(filePath, buffer, {
-            contentType: photo.type,
-            upsert: false,
-          });
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("container-photos")
+        .upload(filePath, buffer, {
+          contentType: photo.type,
+          upsert: false,
+        });
 
       if (uploadError) {
-        console.error("❌ Upload error:", uploadError);
-        return {
-          error: `Gagal upload foto ${photo.name}: ${uploadError.message}`,
-        };
+        throw new Error(
+          `Gagal upload foto ${photo.name}: ${uploadError.message}`
+        );
       }
-
-      console.log("✅ Upload success:", uploadData.path);
 
       const { data: urlData } = supabaseAdmin.storage
         .from("container-photos")
@@ -80,10 +71,8 @@ export async function submitCheckerData(
       });
     }
 
-    console.log("✅ Total uploaded:", uploadedPhotoUrls.length);
-
     if (uploadedPhotoUrls.length === 0) {
-      return { error: "Minimal 1 foto harus diupload" };
+      throw new Error("Minimal 1 foto harus diupload");
     }
 
     await prisma.$transaction(async (tx) => {
@@ -105,17 +94,11 @@ export async function submitCheckerData(
       });
     });
 
-    console.log("✅ Checker data saved successfully");
     revalidatePath("/checker/dashboard");
-  } catch (error) {
-    console.error("❌ Error submitting checker data:", error);
-    return {
-      error:
-        error instanceof Error ? error.message : "Gagal menyimpan data checker",
-    };
+    redirect("/checker/dashboard");
+  } catch {
+    throw new Error("Gagal menyimpan data checker");
   }
-
-  redirect("/checker/dashboard");
 }
 
 export async function updateCheckerData(
@@ -123,7 +106,6 @@ export async function updateCheckerData(
   formData: FormData
 ): Promise<void> {
   const session = await getSession();
-
   if (!session || session.role !== "CHECKER") {
     redirect("/");
   }
@@ -170,16 +152,14 @@ export async function updateCheckerData(
       const arrayBuffer = await photo.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
 
-      const { data: uploadData, error: uploadError } =
-        await supabaseAdmin.storage
-          .from("container-photos")
-          .upload(filePath, buffer, {
-            contentType: photo.type,
-            upsert: false,
-          });
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("container-photos")
+        .upload(filePath, buffer, {
+          contentType: photo.type,
+          upsert: false,
+        });
 
       if (uploadError) {
-        console.error("❌ Upload error:", uploadError);
         throw new Error(`Gagal upload foto ${photo.name}`);
       }
 
@@ -234,16 +214,10 @@ export async function updateCheckerData(
 
     revalidatePath("/checker/dashboard");
     revalidatePath(`/checker/detail/${checkerData.containerId}`);
-  } catch (error) {
-    console.error("❌ Error updating checker data:", error);
-
-    if (error instanceof Error) {
-      throw error;
-    }
+    redirect("/checker/dashboard");
+  } catch {
     throw new Error("Gagal mengupdate data checker");
   }
-
-  redirect("/checker/dashboard");
 }
 
 export async function deleteCheckerData(checkerDataId: string) {
@@ -273,8 +247,7 @@ export async function deleteCheckerData(checkerDataId: string) {
 
     revalidatePath("/checker/dashboard");
     return { success: true };
-  } catch (error) {
-    console.error("❌ Error deleting checker data:", error);
+  } catch {
     return { error: "Gagal menghapus data checker" };
   }
 }
@@ -305,8 +278,7 @@ export async function deleteCheckerPhoto(photoId: string) {
     });
 
     return { success: true };
-  } catch (error) {
-    console.error("❌ Error deleting photo:", error);
+  } catch {
     return { error: "Gagal menghapus foto" };
   }
 }

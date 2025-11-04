@@ -157,7 +157,13 @@ export default async function AdminContainerDetailPage({ params }: PageProps) {
 
   // Group responses by category
   const responsesByCategory = securityCheck?.responses.reduce(
-    (acc: any, response) => {
+    (
+      acc: Record<
+        string,
+        Array<{ itemText: string; notes: string | null; checked: boolean }>
+      >,
+      response
+    ) => {
       const categoryName = response.checklistItem.category.name;
       if (!acc[categoryName]) {
         acc[categoryName] = [];
@@ -463,21 +469,37 @@ export default async function AdminContainerDetailPage({ params }: PageProps) {
                 Object.keys(responsesByCategory).length > 0 && (
                   <div className="space-y-6">
                     {Object.entries(responsesByCategory).map(
-                      ([categoryName, items]: [string, any]) => (
+                      ([categoryName, items]: [
+                        string,
+                        Array<{
+                          itemText: string;
+                          notes: string | null;
+                          checked: boolean;
+                        }>
+                      ]) => (
                         <div key={categoryName} className="space-y-3">
                           <h3 className="text-base font-bold text-gray-900 bg-blue-600 px-4 py-2 rounded-lg">
                             {categoryName}
                           </h3>
                           <div className="space-y-2">
-                            {items.map((item: any, index: number) => (
-                              <ChecklistItemDisplay
-                                key={index}
-                                number={index + 1}
-                                itemText={item.itemText}
-                                notes={item.notes}
-                                checked={item.checked}
-                              />
-                            ))}
+                            {items.map(
+                              (
+                                item: {
+                                  itemText: string;
+                                  notes: string | null;
+                                  checked: boolean;
+                                },
+                                index: number
+                              ) => (
+                                <ChecklistItemDisplay
+                                  key={index}
+                                  number={index + 1}
+                                  itemText={item.itemText}
+                                  notes={item.notes}
+                                  checked={item.checked}
+                                />
+                              )
+                            )}
                           </div>
                         </div>
                       )

@@ -12,6 +12,17 @@ interface PageProps {
   }>;
 }
 
+interface CategoryGrouped {
+  name: string;
+  description: string | null;
+  items: Array<{
+    itemText: string;
+    description: string | null;
+    checked: boolean;
+    notes: string | null;
+  }>;
+}
+
 async function getInspectionDetail(id: string) {
   const inspection = await prisma.securityCheck.findUnique({
     where: { id },
@@ -70,7 +81,6 @@ export default async function SecurityInspectionDetailPage({
     );
   }
 
-  // Group responses by category
   const categoriesMap = inspection.responses.reduce((acc, response) => {
     const category = response.checklistItem.category;
     if (!acc[category.id]) {
@@ -84,7 +94,7 @@ export default async function SecurityInspectionDetailPage({
     }
     acc[category.id].items.push(response);
     return acc;
-  }, {} as Record<string, any>);
+  }, {} as Record<string, CategoryGrouped>);
 
   const sortedCategories = Object.values(categoriesMap).sort(
     (a, b) => a.order - b.order
@@ -94,7 +104,6 @@ export default async function SecurityInspectionDetailPage({
     <DashboardLayout session={session}>
       <div className="min-h-screen bg-slate-50 py-4 sm:py-6 lg:py-8">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-          {/* Header */}
           <div className="mb-4 sm:mb-6">
             <Link
               href="/security/dashboard"
@@ -123,11 +132,8 @@ export default async function SecurityInspectionDetailPage({
             </div>
           </div>
 
-          {/* Form Content (Read-Only) */}
           <div className="space-y-4 sm:space-y-6">
-            {/* Section 1: Container Information */}
             <div className="overflow-hidden rounded-lg bg-white shadow-sm border border-slate-200">
-              {/* Section Header */}
               <div className="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4">
                 <div className="flex items-center gap-2 sm:gap-3">
                   <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm sm:text-base font-bold text-blue-700">
@@ -139,9 +145,7 @@ export default async function SecurityInspectionDetailPage({
                 </div>
               </div>
 
-              {/* Form Grid - Responsive 2 columns */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6">
-                {/* Nama Perusahaan */}
                 <div className="sm:col-span-2">
                   <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                     Nama Perusahaan
@@ -151,7 +155,6 @@ export default async function SecurityInspectionDetailPage({
                   </div>
                 </div>
 
-                {/* No. Kontainer */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                     No. Kontainer
@@ -161,7 +164,6 @@ export default async function SecurityInspectionDetailPage({
                   </div>
                 </div>
 
-                {/* No. Segel */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                     No. Segel
@@ -171,7 +173,6 @@ export default async function SecurityInspectionDetailPage({
                   </div>
                 </div>
 
-                {/* No. Plat Kendaraan */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                     No. Plat Kendaraan
@@ -181,7 +182,6 @@ export default async function SecurityInspectionDetailPage({
                   </div>
                 </div>
 
-                {/* Tanggal Pemeriksaan */}
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                     Tanggal Pemeriksaan
@@ -200,7 +200,6 @@ export default async function SecurityInspectionDetailPage({
                   </div>
                 </div>
 
-                {/* Nama Pemeriksa */}
                 <div className="sm:col-span-2">
                   <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-1.5 sm:mb-2">
                     Nama Pemeriksa
@@ -212,63 +211,63 @@ export default async function SecurityInspectionDetailPage({
               </div>
             </div>
 
-            {/* Checklist by Category */}
-            {sortedCategories.map((category: any, catIdx: number) => (
-              <div
-                key={category.id}
-                className="overflow-hidden rounded-lg bg-white shadow-sm border border-slate-200"
-              >
-                {/* Section Header */}
-                <div className="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4">
-                  <div className="flex items-start gap-2 sm:gap-3">
-                    <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm sm:text-base font-bold text-blue-700">
-                      {catIdx + 2}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h2 className="text-base sm:text-lg font-semibold text-slate-900">
-                        {category.name}
-                      </h2>
-                      {category.description && (
-                        <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                          {category.description}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Checklist Items */}
-                <div className="divide-y divide-slate-200">
-                  {category.items.map((response: any) => (
-                    <div
-                      key={response.id}
-                      className="px-4 sm:px-6 py-3 sm:py-4"
-                    >
-                      <div className="flex items-start gap-2 sm:gap-3">
-                        <CheckCircle2 className="mt-0.5 h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-green-600" />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm sm:text-base font-medium text-slate-900">
-                            {response.checklistItem.itemText}
+            {sortedCategories.map(
+              (category: CategoryGrouped, catIdx: number) => (
+                <div
+                  key={category.id}
+                  className="overflow-hidden rounded-lg bg-white shadow-sm border border-slate-200"
+                >
+                  <div className="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4">
+                    <div className="flex items-start gap-2 sm:gap-3">
+                      <div className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-sm sm:text-base font-bold text-blue-700">
+                        {catIdx + 2}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="text-base sm:text-lg font-semibold text-slate-900">
+                          {category.name}
+                        </h2>
+                        {category.description && (
+                          <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                            {category.description}
                           </p>
-                          {response.checklistItem.description && (
-                            <p className="mt-1 text-xs sm:text-sm text-slate-600">
-                              {response.checklistItem.description}
-                            </p>
-                          )}
-                          {response.notes && (
-                            <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs sm:text-sm text-slate-700 italic">
-                              {response.notes}
-                            </p>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                  </div>
 
-            {/* Photo Display Section */}
+                  <div className="divide-y divide-slate-200">
+                    {category.items.map(
+                      (response: CategoryGrouped["items"][number]) => (
+                        <div
+                          key={response.id}
+                          className="px-4 sm:px-6 py-3 sm:py-4"
+                        >
+                          <div className="flex items-start gap-2 sm:gap-3">
+                            <CheckCircle2 className="mt-0.5 h-4 w-4 sm:h-5 sm:w-5 shrink-0 text-green-600" />
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm sm:text-base font-medium text-slate-900">
+                                {response.checklistItem.itemText}
+                              </p>
+                              {response.checklistItem.description && (
+                                <p className="mt-1 text-xs sm:text-sm text-slate-600">
+                                  {response.checklistItem.description}
+                                </p>
+                              )}
+                              {response.notes && (
+                                <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs sm:text-sm text-slate-700 italic">
+                                  {response.notes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </div>
+              )
+            )}
+
             <div className="overflow-hidden rounded-lg bg-white shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900">
@@ -301,7 +300,6 @@ export default async function SecurityInspectionDetailPage({
               </div>
             </div>
 
-            {/* Remarks */}
             <div className="overflow-hidden rounded-lg bg-white shadow-sm border border-slate-200">
               <div className="border-b border-slate-200 bg-slate-50 px-4 sm:px-6 py-3 sm:py-4">
                 <h2 className="text-base sm:text-lg font-semibold text-slate-900">
@@ -315,7 +313,6 @@ export default async function SecurityInspectionDetailPage({
               </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pb-4 sm:pb-6">
               <Link
                 href="/security/dashboard"

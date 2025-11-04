@@ -8,7 +8,6 @@ import {
   Package,
   ClipboardCheck,
   FileText,
-  Settings,
   LogOut,
   ChevronLeft,
   Menu,

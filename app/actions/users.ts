@@ -58,15 +58,14 @@ export async function createUser(formData: FormData) {
 
     // Return success instead of redirect
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Error creating user:", error);
-
-    if (error.message?.includes("Unique constraint")) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("Unique constraint")) {
       return { error: "Email sudah terdaftar" };
     }
-
     return {
-      error: `Gagal membuat user: ${error.message || "Unknown error"}`,
+      error: `Gagal membuat user: ${errorMessage}`,
     };
   }
 }
@@ -103,7 +102,12 @@ export async function updateUser(userId: string, formData: FormData) {
       return { error: "Email sudah digunakan user lain" };
     }
 
-    const updateData: any = {
+    const updateData: {
+      name: string;
+      email: string;
+      role: "SECURITY" | "CHECKER" | "ADMIN";
+      password?: string;
+    } = {
       name,
       email,
       role,
@@ -123,9 +127,10 @@ export async function updateUser(userId: string, formData: FormData) {
 
     revalidatePath("/admin/users");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error updating user:", error);
-    return { error: `Gagal mengupdate user: ${error.message}` };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { error: `Gagal mengupdate user: ${errorMessage}` };
   }
 }
 
@@ -155,8 +160,9 @@ export async function deleteUser(userId: string) {
 
     revalidatePath("/admin/users");
     return { success: true };
-  } catch (error: any) {
+  } catch (error) {
     console.error("Error deleting user:", error);
-    return { error: `Gagal menghapus user: ${error.message}` };
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return { error: `Gagal menghapus user: ${errorMessage}` };
   }
 }

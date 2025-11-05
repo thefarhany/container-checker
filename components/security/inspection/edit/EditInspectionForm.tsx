@@ -6,7 +6,6 @@ import { updateInspection } from "@/app/actions/inspections";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import ImageUploadClient from "@/components/security/inspection/ImageUploadClient";
-import Image from "next/image";
 
 interface Photo {
   id: string;
@@ -53,6 +52,11 @@ interface Category {
   }>;
 }
 
+// ✅ Add interface untuk responseMap
+interface ResponseMap {
+  [key: string]: SecurityCheckResponse;
+}
+
 export default function EditInspectionForm({
   inspection,
   categories,
@@ -61,25 +65,23 @@ export default function EditInspectionForm({
   categories: Category[];
 }) {
   const [isPending, startTransition] = useTransition();
-  const [deletedPhotos, setDeletedPhotos] = useTransition();
+  // ✅ HAPUS: const [deletedPhotos, setDeletedPhotos] = useTransition();
 
   const handleDeletePhoto = (photoId: string) => {
-    setDeletedPhotos(() => {
-      const photoInput = document.getElementById(
-        "deletedPhotoIds"
-      ) as HTMLInputElement;
-      if (photoInput) {
-        const currentIds = photoInput.value ? photoInput.value.split(",") : [];
-        if (!currentIds.includes(photoId)) {
-          photoInput.value = [...currentIds, photoId].join(",");
-        }
+    // ✅ GUNAKAN fungsi biasa tanpa setDeletedPhotos
+    const photoInput = document.getElementById(
+      "deletedPhotoIds"
+    ) as HTMLInputElement;
+    if (photoInput) {
+      const currentIds = photoInput.value ? photoInput.value.split(",") : [];
+      if (!currentIds.includes(photoId)) {
+        photoInput.value = [...currentIds, photoId].join(",");
       }
-
-      const photoElement = document.getElementById(`photo-${photoId}`);
-      if (photoElement) {
-        photoElement.style.display = "none";
-      }
-    });
+    }
+    const photoElement = document.getElementById(`photo-${photoId}`);
+    if (photoElement) {
+      photoElement.style.display = "none";
+    }
   };
 
   const handleSubmit = async (formData: FormData) => {
@@ -101,17 +103,19 @@ export default function EditInspectionForm({
     startTransition(async () => {
       try {
         await updateInspection(inspection.id, formData);
-
         toast.dismiss(loadingToast);
         toast.success("Data Pemeriksaan Berhasil Diperbarui! ✓", {
           description: "Perubahan pemeriksaan kontainer telah disimpan",
           duration: 5000,
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
+        // ✅ Fix error: any to error: unknown
+        const err = error as { message?: string; digest?: string };
+
         if (
-          error?.message === "NEXT_REDIRECT" ||
-          error?.digest?.startsWith("NEXT_REDIRECT") ||
-          (error?.message && String(error.message).includes("NEXT_REDIRECT"))
+          err?.message === "NEXT_REDIRECT" ||
+          err?.digest?.startsWith("NEXT_REDIRECT") ||
+          (err?.message && String(err.message).includes("NEXT_REDIRECT"))
         ) {
           toast.dismiss(loadingToast);
           toast.success("Data Pemeriksaan Berhasil Diperbarui! ✓", {
@@ -131,10 +135,14 @@ export default function EditInspectionForm({
     });
   };
 
-  const responseMap = inspection.responses.reduce((acc: any, response) => {
-    acc[response.checklistItemId] = response;
-    return acc;
-  }, {});
+  // ✅ Fix acc: any dengan proper type
+  const responseMap = inspection.responses.reduce(
+    (acc: ResponseMap, response: SecurityCheckResponse) => {
+      acc[response.checklistItemId] = response;
+      return acc;
+    },
+    {} as ResponseMap
+  );
 
   const formatDatetime = (date: Date) => {
     const d = new Date(date);
@@ -142,243 +150,218 @@ export default function EditInspectionForm({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
-      <div className="mb-6">
-        <Link
-          href="/security/dashboard"
-          className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Kembali ke Dashboard
-        </Link>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Edit Pemeriksaan Kontainer
-        </h1>
-        <p className="text-gray-600 mt-2">
-          Perbarui informasi pemeriksaan dengan lengkap dan teliti
-        </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-white border-b border-gray-200">
+        <div className="container mx-auto px-4 py-4 max-w-4xl">
+          <Link
+            href={`/security/inspection/${inspection.id}`}
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Kembali ke Detail Pemeriksaan
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Edit Pemeriksaan Kontainer
+          </h1>
+          <p className="text-gray-600 mt-2">
+            Perbarui informasi pemeriksaan dengan lengkap dan teliti
+          </p>
+        </div>
       </div>
 
-      <form action={handleSubmit} className="space-y-6">
-        <input type="hidden" id="deletedPhotoIds" name="deletedPhotoIds" />
-
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold">
-              1
-            </div>
-            <h2 className="text-xl font-semibold text-gray-900">
-              Informasi Kontainer
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Perusahaan *
-              </label>
-              <input
-                type="text"
-                name="companyName"
-                defaultValue={inspection.container.companyName}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                No. Kontainer *
-              </label>
-              <input
-                type="text"
-                name="containerNo"
-                defaultValue={inspection.container.containerNo}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                No. Segel *
-              </label>
-              <input
-                type="text"
-                name="sealNo"
-                defaultValue={inspection.container.sealNo}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                No. Plat Kendaraan *
-              </label>
-              <input
-                type="text"
-                name="plateNo"
-                defaultValue={inspection.container.plateNo}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tanggal Pemeriksaan *
-              </label>
-              <input
-                type="datetime-local"
-                name="inspectionDate"
-                defaultValue={formatDatetime(inspection.inspectionDate)}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Nama Pemeriksa *
-              </label>
-              <input
-                type="text"
-                name="inspectorName"
-                defaultValue={inspection.inspectorName}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-              />
-            </div>
-          </div>
-        </div>
-
-        {categories.map((category, idx) => (
-          <div
-            key={category.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-600 font-semibold">
-                {idx + 2}
-              </div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                {category.name}
-              </h2>
-            </div>
-
-            {category.description && (
-              <p className="text-gray-600 mb-4">{category.description}</p>
-            )}
-
-            <div className="space-y-4">
-              {category.items.map((item) => {
-                const response = responseMap[item.id];
-                return (
-                  <div
-                    key={item.id}
-                    className="border border-gray-200 rounded-lg p-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <input
-                        type="checkbox"
-                        name={`checklist_${item.id}`}
-                        id={`checklist_${item.id}`}
-                        defaultChecked={response?.checked || false}
-                        className="mt-1 h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <div className="flex-1">
-                        <label
-                          htmlFor={`checklist_${item.id}`}
-                          className="text-sm font-medium text-gray-900 cursor-pointer"
-                        >
-                          {item.itemText}
-                        </label>
-                        {item.description && (
-                          <p className="text-sm text-gray-600 mt-1">
-                            {item.description}
-                          </p>
-                        )}
-                        <textarea
-                          name={`notes_${item.id}`}
-                          defaultValue={response?.notes || ""}
-                          placeholder="Catatan (opsional)"
-                          className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-black"
-                          rows={2}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
-
-        {inspection.photos.length > 0 && (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <form action={handleSubmit} className="space-y-8">
+          {/* Container Info */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">
-              Foto Pemeriksaan ({inspection.photos.length})
+              Informasi Kontainer
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {inspection.photos.map((photo) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nomor Kontainer
+                </label>
+                <input
+                  type="text"
+                  defaultValue={inspection.container.containerNo}
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Perusahaan
+                </label>
+                <input
+                  type="text"
+                  defaultValue={inspection.container.companyName}
+                  readOnly
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Inspector
+                </label>
+                <input
+                  type="text"
+                  name="inspectorName"
+                  defaultValue={inspection.inspectorName}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tanggal & Waktu Pemeriksaan
+                </label>
+                <input
+                  type="datetime-local"
+                  name="inspectionDate"
+                  defaultValue={formatDatetime(inspection.inspectionDate)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Checklist Items */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Checklist Pemeriksaan
+            </h2>
+            <div className="space-y-6">
+              {categories.map((category: Category) => (
                 <div
-                  key={photo.id}
-                  id={`photo-${photo.id}`}
-                  className="relative group"
+                  key={category.id}
+                  className="border border-gray-200 rounded-lg p-4"
                 >
-                  <img
-                    src={photo.url}
-                    alt={photo.filename}
-                    className="w-full h-40 object-cover rounded-lg"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePhoto(photo.id)}
-                    className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <span className="text-sm">✕</span>
-                  </button>
-                  <p className="text-xs text-gray-600 mt-1 truncate">
-                    {photo.filename}
-                  </p>
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    {category.name}
+                  </h3>
+                  {category.description && (
+                    <p className="text-sm text-gray-600 mb-3">
+                      {category.description}
+                    </p>
+                  )}
+                  <div className="space-y-3">
+                    {category.items.map((item) => {
+                      const response = responseMap[item.id];
+                      return (
+                        <label
+                          key={item.id}
+                          className="flex items-start gap-3 p-2 hover:bg-gray-50 rounded"
+                        >
+                          <input
+                            type="checkbox"
+                            name={`response_${item.id}`}
+                            value="true"
+                            defaultChecked={response?.checked}
+                            className="mt-1 w-4 h-4 border-gray-300 rounded text-blue-600 focus:ring-blue-500"
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              {item.itemText}
+                            </p>
+                            {item.description && (
+                              <p className="text-xs text-gray-600 mt-1">
+                                {item.description}
+                              </p>
+                            )}
+                            {response?.notes && (
+                              <p className="text-xs text-blue-600 mt-1 italic">
+                                Catatan: {response.notes}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
 
-        <ImageUploadClient />
+          {/* Existing Photos */}
+          {inspection.photos.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">
+                Foto Pemeriksaan Saat Ini
+              </h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {inspection.photos.map((photo: Photo) => (
+                  <div
+                    key={photo.id}
+                    id={`photo-${photo.id}`}
+                    className="relative group"
+                  >
+                    {/* ✅ Add eslint disable comment */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={photo.url}
+                      alt={photo.filename}
+                      className="w-full h-40 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleDeletePhoto(photo.id)}
+                      className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ✕
+                    </button>
+                    <p className="text-xs text-gray-600 mt-1 truncate">
+                      {photo.filename}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <input
+                type="hidden"
+                id="deletedPhotoIds"
+                name="deletedPhotoIds"
+              />
+            </div>
+          )}
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Catatan Tambahan
-          </label>
-          <textarea
-            name="remarks"
-            defaultValue={inspection.remarks || ""}
-            rows={4}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
-            placeholder="Tambahkan catatan atau keterangan tambahan (opsional)"
-          />
-        </div>
+          {/* New Photos */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">
+              Upload Foto Baru
+            </h2>
+            <ImageUploadClient />
+          </div>
 
-        <div className="flex gap-4 pt-6">
-          <Link
-            href="/security/dashboard"
-            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-          >
-            Batal
-          </Link>
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-          >
-            {isPending ? "Menyimpan..." : "Simpan Perubahan"}
-          </button>
-        </div>
-      </form>
+          {/* Remarks */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Catatan Pemeriksaan
+            </label>
+            <textarea
+              name="remarks"
+              defaultValue={inspection.remarks || ""}
+              rows={4}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          {/* Submit */}
+          <div className="flex gap-4">
+            <Link
+              href={`/security/inspection/${inspection.id}`}
+              className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Batal
+            </Link>
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+              {isPending ? "Menyimpan..." : "Simpan Perubahan"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

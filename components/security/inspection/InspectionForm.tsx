@@ -103,7 +103,7 @@ export default function InspectionForm({
                   id="containerNo"
                   name="containerNo"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
                   placeholder="Contoh: CONT-2024-001"
                 />
               </div>
@@ -119,7 +119,7 @@ export default function InspectionForm({
                   id="companyName"
                   name="companyName"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
                   placeholder="Nama perusahaan"
                 />
               </div>
@@ -135,7 +135,7 @@ export default function InspectionForm({
                   id="sealNo"
                   name="sealNo"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
                   placeholder="Nomor segel"
                 />
               </div>
@@ -151,7 +151,7 @@ export default function InspectionForm({
                   id="plateNo"
                   name="plateNo"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
                   placeholder="Nomor plat kendaraan"
                 />
               </div>
@@ -167,7 +167,7 @@ export default function InspectionForm({
                   id="inspectionDate"
                   name="inspectionDate"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
                 />
               </div>
               <div>
@@ -182,7 +182,7 @@ export default function InspectionForm({
                   id="inspectorName"
                   name="inspectorName"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
                   placeholder="Nama inspector"
                 />
               </div>

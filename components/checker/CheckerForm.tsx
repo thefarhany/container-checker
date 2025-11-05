@@ -125,7 +125,7 @@ export default function CheckerForm({
               id="utcNo"
               name="utcNo"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
               placeholder="Contoh: UTC-2024-001"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -161,7 +161,7 @@ export default function CheckerForm({
               id="remarks"
               name="remarks"
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg text-black"
               placeholder="Tambahkan catatan atau keterangan tambahan jika diperlukan"
             />
           </div>
@@ -187,7 +187,7 @@ export default function CheckerForm({
       </div>
 
       {isPending && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
             <div className="flex items-center justify-center mb-4">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />

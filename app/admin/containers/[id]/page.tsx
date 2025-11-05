@@ -21,9 +21,7 @@ import {
 } from "lucide-react";
 
 interface PageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 async function getContainerDetail(id: string) {
@@ -131,7 +129,8 @@ export default async function AdminContainerDetailPage({ params }: PageProps) {
     redirect("/dashboard");
   }
 
-  const container = await getContainerDetail(params.id);
+  const { id } = await params;
+  const container = await getContainerDetail(id);
 
   if (!container) {
     return (

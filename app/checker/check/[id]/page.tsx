@@ -20,9 +20,7 @@ import {
 } from "lucide-react";
 
 interface PageProps {
-  params: {
-    id: string;
-  };
+  params: Promise<{ id: string }>;
 }
 
 async function getContainerData(id: string) {
@@ -119,7 +117,8 @@ export default async function CheckerInspectionPage({ params }: PageProps) {
     redirect("/");
   }
 
-  const container = await getContainerData(params.id);
+  const { id } = await params;
+  const container = await getContainerData(id);
 
   if (!container) {
     return (

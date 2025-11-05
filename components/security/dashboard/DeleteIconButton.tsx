@@ -20,10 +20,9 @@ export default function DeleteIconButton({
     try {
       const result = await deleteInspection(inspectionId);
       if (result.success) {
-        setShowModal(false); // Tutup modal
-        router.refresh(); // Refresh halaman
+        setShowModal(false);
+        router.refresh();
       } else {
-        // Handle error jika ada
         console.error("Delete failed:", result.error);
         alert("Gagal menghapus data: " + (result.error || "Unknown error"));
       }

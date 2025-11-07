@@ -104,7 +104,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Laporan Kontainer");
 
-      // Add title
       worksheet.mergeCells("A1:J1");
       const titleCell = worksheet.getCell("A1");
       titleCell.value = "LAPORAN PEMERIKSAAN KONTAINER";
@@ -117,7 +116,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       };
       worksheet.getRow(1).height = 30;
 
-      // Add date generated
       worksheet.mergeCells("A2:J2");
       const dateCell = worksheet.getCell("A2");
       dateCell.value = `Tanggal Generate: ${new Date().toLocaleDateString(
@@ -135,7 +133,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
 
       worksheet.addRow([]);
 
-      // Headers
       const headerRow = worksheet.addRow([
         "No.",
         "No. Kontainer",
@@ -158,7 +155,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       headerRow.alignment = { horizontal: "center", vertical: "middle" };
       headerRow.height = 25;
 
-      // Set border for headers
       headerRow.eachCell((cell) => {
         cell.border = {
           top: { style: "thin" },
@@ -168,7 +164,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         };
       });
 
-      // Column widths
       worksheet.getColumn(1).width = 5;
       worksheet.getColumn(2).width = 18;
       worksheet.getColumn(3).width = 18;
@@ -180,7 +175,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       worksheet.getColumn(9).width = 100;
       worksheet.getColumn(10).width = 30;
 
-      // Add data with images
       let rowIndex = 5;
       for (let i = 0; i < containers.length; i++) {
         const container = containers[i];
@@ -217,7 +211,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         dataRow.height = rowHeight;
         dataRow.alignment = { vertical: "middle", wrapText: true };
 
-        // Add borders
         dataRow.eachCell((cell) => {
           cell.border = {
             top: { style: "thin" },
@@ -227,7 +220,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           };
         });
 
-        // Add status color
         const statusCell = worksheet.getCell(`H${rowIndex}`);
         if (status === "Selesai") {
           statusCell.fill = {
@@ -245,7 +237,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           statusCell.font = { color: { argb: "FF9C0006" }, bold: true };
         }
 
-        // Add images inline (up to 5 images per row)
         if (allPhotos.length > 0) {
           const maxImages = Math.min(allPhotos.length, 5);
           const imageWidth = 90;
@@ -253,21 +244,15 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
 
           for (let j = 0; j < maxImages; j++) {
             const photo = allPhotos[j];
-
             try {
-              // Fetch image and convert to ArrayBuffer
               const response = await fetch(photo.url);
-              const blob = await response.blob();
-              const arrayBuffer = await blob.arrayBuffer();
-
-              const uint8Array = new Uint8Array(arrayBuffer);
+              const arrayBuffer = await response.arrayBuffer();
 
               const imageId = workbook.addImage({
-                buffer: uint8Array,
+                buffer: arrayBuffer as unknown as ExcelJS.Buffer,
                 extension: "jpeg",
               });
 
-              // Position images horizontally in column I (index 8)
               worksheet.addImage(imageId, {
                 tl: { col: 8 + j * 0.2, row: rowIndex - 1 + 0.15 },
                 ext: { width: imageWidth, height: imageHeight },
@@ -282,7 +267,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         rowIndex++;
       }
 
-      // Add summary at the bottom
       worksheet.addRow([]);
       const summaryRow = worksheet.addRow([
         "",
@@ -303,7 +287,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         fgColor: { argb: "FFE7E6E6" },
       };
 
-      // Generate Excel file
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

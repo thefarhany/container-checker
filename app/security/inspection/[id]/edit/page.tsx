@@ -1,8 +1,23 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
-import EditInspectionForm from "@/components/security/inspection/edit/EditInspectionForm";
+import InspectionFormUnified from "@/components/security/inspection/InspectionFormUnified";
 import { notFound } from "next/navigation";
+
+interface ChecklistItem {
+  id: string;
+  itemText: string;
+  description: string | null;
+  order: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  order: number;
+  items: ChecklistItem[];
+}
 
 interface PageProps {
   params: Promise<{
@@ -12,11 +27,12 @@ interface PageProps {
 
 export default async function EditInspectionPage({ params }: PageProps) {
   const session = await getSession();
+
   if (!session) return null;
 
   const resolvedParams = await params;
 
-  // Fetch inspection data
+  // Fetch inspection dengan semua relasi
   const inspection = await prisma.securityCheck.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -50,7 +66,12 @@ export default async function EditInspectionPage({ params }: PageProps) {
 
   return (
     <DashboardLayout session={session}>
-      <EditInspectionForm inspection={inspection} categories={categories} />
+      <InspectionFormUnified
+        mode="edit"
+        categories={categories as unknown as Category[]}
+        inspection={inspection}
+        backLink={`/security/dashboard`}
+      />
     </DashboardLayout>
   );
 }

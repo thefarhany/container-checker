@@ -40,13 +40,26 @@ export async function createInspection(formData: FormData): Promise<void> {
       throw new Error("Semua field wajib harus diisi");
     }
 
-    // Check if container already exists
+    // ✅ CHECK: Container number already exists
     const existingContainer = await prisma.container.findUnique({
       where: { containerNo: containerData.containerNo },
     });
 
     if (existingContainer) {
-      throw new Error("Nomor kontainer sudah ada. Gunakan nomor lain.");
+      throw new Error(
+        `Nomor kontainer "${containerData.containerNo}" sudah digunakan. Silakan gunakan nomor lain.`
+      );
+    }
+
+    // ✅ CHECK: Seal number already exists
+    const existingSeal = await prisma.container.findFirst({
+      where: { sealNo: containerData.sealNo },
+    });
+
+    if (existingSeal) {
+      throw new Error(
+        `Nomor seal "${containerData.sealNo}" sudah digunakan. Silakan gunakan nomor lain.`
+      );
     }
 
     // Extract checklist responses

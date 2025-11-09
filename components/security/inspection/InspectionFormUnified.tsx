@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef } from "react";
 import { toast } from "sonner";
 import {
   createInspection,
@@ -86,6 +86,8 @@ export default function InspectionFormUnified({
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletedPhotoIds, setDeletedPhotoIds] = useState<string[]>([]);
+  const [formKey, setFormKey] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -243,6 +245,11 @@ export default function InspectionFormUnified({
             error instanceof Error ? error.message : "Terjadi kesalahan",
           duration: 5000,
         });
+
+        if (formRef.current) {
+          formRef.current.reset();
+        }
+        setFormKey((prev) => prev + 1);
       }
     });
   };
@@ -333,7 +340,7 @@ export default function InspectionFormUnified({
           </div>
         )}
 
-        <form action={handleSubmit} className="space-y-6">
+        <form ref={formRef} action={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4">
               Informasi Kontainer
@@ -705,15 +712,16 @@ export default function InspectionFormUnified({
           )}
 
           {!isViewMode && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
+              <h3 className="text-lg font-semibold text-slate-800 mb-4">
                 {isEditMode && inspection?.photos.length
                   ? "Tambah Foto Pemeriksaan"
                   : "Upload Foto Pemeriksaan"}
-              </h2>
+              </h3>
               <ImageUploadClientUnified
-                mode={isCreateMode ? "create" : "edit"}
-                existingPhotos={isEditMode ? inspection?.photos : undefined}
+                mode={mode}
+                existingPhotos={inspection?.photos}
+                key={formKey}
               />
             </div>
           )}

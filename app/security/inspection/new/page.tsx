@@ -2,6 +2,12 @@ import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import InspectionFormUnified from "@/components/security/inspection/InspectionFormUnified";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Tambah Pengecekan Baru Security",
+  description: "Dashboard pemeriksaan keamanan kontainer",
+};
 
 interface ChecklistItem {
   id: string;
@@ -39,7 +45,7 @@ export default async function NewInspectionPage() {
         mode="create"
         categories={categories as unknown as Category[]}
         defaultInspectorName={session.name}
-        backLink="/security/inspection"
+        backLink="/security/dashboard"
       />
     </DashboardLayout>
   );

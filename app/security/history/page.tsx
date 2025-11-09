@@ -12,6 +12,12 @@ import {
   Eye,
   LucideIcon,
 } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "History Security",
+  description: "Dashboard pemeriksaan keamanan kontainer",
+};
 
 async function getInspections(userId: string) {
   return await prisma.securityCheck.findMany({

@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { supabaseAdmin } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
+/**
+ * Submit new checker data for a container
+ */
 export async function submitCheckerData(
   containerId: string,
   formData: FormData
@@ -28,51 +31,75 @@ export async function submitCheckerData(
     });
 
     if (existingUTC) {
-      throw new Error("Nomor UTC sudah digunakan. Gunakan nomor lain.");
+      throw new Error(
+        `No. UTC "${utcNo}" sudah digunakan. No. UTC Tidak Boleh Sama!`
+      );
     }
 
     const photos = formData.getAll("photos") as File[];
-    const uploadedPhotoUrls: { url: string; filename: string }[] = [];
+    const validPhotos = photos.filter((photo) => photo && photo.size > 0);
 
-    for (const photo of photos) {
-      if (!photo || photo.size === 0) {
-        continue;
-      }
-
-      const fileExt = photo.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random()
-        .toString(36)
-        .substring(7)}.${fileExt}`;
-      const filePath = `checker/${fileName}`;
-
-      const arrayBuffer = await photo.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("container-photos")
-        .upload(filePath, buffer, {
-          contentType: photo.type,
-          upsert: false,
-        });
-
-      if (uploadError) {
-        throw new Error(
-          `Gagal upload foto ${photo.name}: ${uploadError.message}`
-        );
-      }
-
-      const { data: urlData } = supabaseAdmin.storage
-        .from("container-photos")
-        .getPublicUrl(filePath);
-
-      uploadedPhotoUrls.push({
-        url: urlData.publicUrl,
-        filename: photo.name,
-      });
+    if (validPhotos.length === 0) {
+      throw new Error("Minimal 1 foto harus diupload");
     }
 
-    if (uploadedPhotoUrls.length === 0) {
-      throw new Error("Minimal 1 foto harus diupload");
+    if (validPhotos.length > 20) {
+      throw new Error("Maksimal 20 foto dapat diupload");
+    }
+
+    const uploadedPhotoUrls: { url: string; filename: string }[] = [];
+
+    for (const photo of validPhotos) {
+      try {
+        const fileExt = photo.name.split(".").pop();
+        const fileName = `${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(7)}.${fileExt}`;
+        const filePath = `checker/${fileName}`;
+
+        const arrayBuffer = await photo.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        const { error: uploadError } = await supabaseAdmin.storage
+          .from("container-photos")
+          .upload(filePath, buffer, {
+            contentType: photo.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          if (uploadedPhotoUrls.length > 0) {
+            const filePaths = uploadedPhotoUrls.map((p) =>
+              p.url.split("/").slice(-2).join("/")
+            );
+            await supabaseAdmin.storage
+              .from("container-photos")
+              .remove(filePaths);
+          }
+          throw new Error(
+            `Gagal upload foto ${photo.name}: ${uploadError.message}`
+          );
+        }
+
+        const { data: urlData } = supabaseAdmin.storage
+          .from("container-photos")
+          .getPublicUrl(filePath);
+
+        uploadedPhotoUrls.push({
+          url: urlData.publicUrl,
+          filename: photo.name,
+        });
+      } catch (error) {
+        if (uploadedPhotoUrls.length > 0) {
+          const filePaths = uploadedPhotoUrls.map((p) =>
+            p.url.split("/").slice(-2).join("/")
+          );
+          await supabaseAdmin.storage
+            .from("container-photos")
+            .remove(filePaths);
+        }
+        throw error;
+      }
     }
 
     await prisma.$transaction(async (tx) => {
@@ -96,11 +123,17 @@ export async function submitCheckerData(
 
     revalidatePath("/checker/dashboard");
     redirect("/checker/dashboard");
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Gagal menyimpan data checker");
   }
 }
 
+/**
+ * Update existing checker data
+ */
 export async function updateCheckerData(
   checkerDataId: string,
   formData: FormData
@@ -127,19 +160,44 @@ export async function updateCheckerData(
     const remarks = formData.get("remarks") as string;
     const deletedPhotoIds = formData.getAll("deletedPhotoIds") as string[];
 
-    const existingUTC = await prisma.checkerData.findFirst({
-      where: {
-        utcNo,
-        id: { not: checkerDataId },
-      },
-    });
+    if (!utcNo) {
+      throw new Error("Nomor UTC harus diisi");
+    }
 
-    if (existingUTC) {
-      throw new Error("Nomor UTC sudah digunakan. Gunakan nomor lain.");
+    if (utcNo !== checkerData.utcNo) {
+      const existingUTC = await prisma.checkerData.findFirst({
+        where: {
+          utcNo,
+          id: { not: checkerDataId },
+        },
+      });
+
+      if (existingUTC) {
+        throw new Error(
+          `No. UTC "${utcNo}" sudah digunakan. No. UTC Tidak Boleh Sama!`
+        );
+      }
     }
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
+
+    const remainingPhotoCount =
+      checkerData.photos.length - deletedPhotoIds.length;
+    const totalPhotoCount = remainingPhotoCount + validPhotos.length;
+
+    if (totalPhotoCount < 1) {
+      throw new Error(
+        `Total foto minimal 1. Saat ini akan tersisa ${totalPhotoCount} foto.`
+      );
+    }
+
+    if (totalPhotoCount > 20) {
+      throw new Error(
+        `Total foto maksimal 20. Saat ini akan ada ${totalPhotoCount} foto.`
+      );
+    }
+
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
 
     for (const photo of validPhotos) {
@@ -189,9 +247,11 @@ export async function updateCheckerData(
 
         for (const photo of photosToDelete) {
           const filePath = photo.url.split("/").slice(-2).join("/");
-          await supabaseAdmin.storage
-            .from("container-photos")
-            .remove([filePath]);
+          try {
+            await supabaseAdmin.storage
+              .from("container-photos")
+              .remove([filePath]);
+          } catch {}
         }
 
         await tx.photo.deleteMany({
@@ -215,11 +275,17 @@ export async function updateCheckerData(
     revalidatePath("/checker/dashboard");
     revalidatePath(`/checker/detail/${checkerData.containerId}`);
     redirect("/checker/dashboard");
-  } catch {
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Gagal mengupdate data checker");
   }
 }
 
+/**
+ * Delete checker data and all related photos
+ */
 export async function deleteCheckerData(checkerDataId: string) {
   const session = await getSession();
   if (!session || session.role !== "CHECKER") {
@@ -238,7 +304,9 @@ export async function deleteCheckerData(checkerDataId: string) {
 
     for (const photo of checkerData.photos) {
       const filePath = photo.url.split("/").slice(-2).join("/");
-      await supabaseAdmin.storage.from("container-photos").remove([filePath]);
+      try {
+        await supabaseAdmin.storage.from("container-photos").remove([filePath]);
+      } catch {}
     }
 
     await prisma.checkerData.delete({
@@ -252,6 +320,9 @@ export async function deleteCheckerData(checkerDataId: string) {
   }
 }
 
+/**
+ * Delete single photo from checker data
+ */
 export async function deleteCheckerPhoto(photoId: string) {
   const session = await getSession();
   if (!session || session.role !== "CHECKER") {
@@ -271,12 +342,16 @@ export async function deleteCheckerPhoto(photoId: string) {
     }
 
     const filePath = photo.url.split("/").slice(-2).join("/");
-    await supabaseAdmin.storage.from("container-photos").remove([filePath]);
+
+    try {
+      await supabaseAdmin.storage.from("container-photos").remove([filePath]);
+    } catch {}
 
     await prisma.photo.delete({
       where: { id: photoId },
     });
 
+    revalidatePath("/checker/dashboard");
     return { success: true };
   } catch {
     return { error: "Gagal menghapus foto" };

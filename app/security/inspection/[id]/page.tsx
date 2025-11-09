@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import InspectionFormUnified from "@/components/security/inspection/InspectionFormUnified";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Detail Pengecekan Security",
+  description: "Dashboard pemeriksaan keamanan kontainer",
+};
 
 interface ChecklistItem {
   id: string;
@@ -32,7 +38,6 @@ export default async function InspectionDetailPage({ params }: PageProps) {
 
   const resolvedParams = await params;
 
-  // Fetch inspection dengan semua relasi
   const inspection = await prisma.securityCheck.findUnique({
     where: { id: resolvedParams.id },
     include: {

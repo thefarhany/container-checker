@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition, useState } from "react";
+import { useTransition, useState, useRef } from "react";
 import { toast } from "sonner";
 import { submitCheckerData, deleteCheckerData } from "@/app/actions/checker";
 import {
@@ -112,6 +112,8 @@ export default function CheckerFormUnified({
   const [isPending, startTransition] = useTransition();
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletedPhotoIds, setDeletedPhotoIds] = useState<string[]>([]);
+  const [formKey, setFormKey] = useState(0);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const formatDate = (date: Date | string) => {
     const d = new Date(date);
@@ -183,6 +185,7 @@ export default function CheckerFormUnified({
         description: result.error || "Terjadi kesalahan",
         duration: 5000,
       });
+      setFormKey((prev) => prev + 1);
     }
   };
 
@@ -196,6 +199,7 @@ export default function CheckerFormUnified({
     startTransition(async () => {
       try {
         await submitCheckerData(container.id, formData);
+
         toast.dismiss(loadingToast);
         toast.success("Pemeriksaan Berhasil Disimpan! ✓", {
           description: "Data checker telah disimpan ke database",
@@ -225,6 +229,11 @@ export default function CheckerFormUnified({
             error instanceof Error ? error.message : "Terjadi kesalahan",
           duration: 5000,
         });
+
+        if (formRef.current) {
+          formRef.current.reset();
+        }
+        setFormKey((prev) => prev + 1);
       }
     });
   };
@@ -292,7 +301,7 @@ export default function CheckerFormUnified({
           </div>
         </div>
 
-        <form action={handleSubmit} className="space-y-6">
+        <form ref={formRef} action={handleSubmit} className="space-y-6">
           <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
               <Truck className="w-5 h-5 text-blue-600" />
@@ -589,7 +598,7 @@ export default function CheckerFormUnified({
                 <Camera className="w-5 h-5 text-blue-600" />
                 Upload Foto Pemeriksaan Checker
               </h2>
-              <ImageUploadClientUnified mode="create" />
+              <ImageUploadClientUnified mode="create" key={formKey} />
             </div>
           )}
 

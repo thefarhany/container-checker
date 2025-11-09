@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import InspectionFormUnified from "@/components/security/inspection/InspectionFormUnified";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Edit Pemeriksaan Security",
+  description: "Dashboard pemeriksaan keamanan kontainer",
+};
 
 interface ChecklistItem {
   id: string;

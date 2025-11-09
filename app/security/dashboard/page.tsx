@@ -18,6 +18,12 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { Prisma } from "@prisma/client";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard Security",
+  description: "Dashboard pemeriksaan keamanan kontainer",
+};
 
 interface PageProps {
   searchParams: Promise<{

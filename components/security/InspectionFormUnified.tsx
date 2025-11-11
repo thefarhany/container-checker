@@ -9,7 +9,8 @@ import {
 } from "@/app/actions/inspections";
 import { ArrowLeft, Check, Trash2, X } from "lucide-react";
 import Link from "next/link";
-import ImageUploadClientUnified from "@/components/security/inspection/ImageUploadClientUnified";
+import ImageUploadClientUnified from "@/components/security/ImageUploadClientUnified";
+import DeleteContainerButton from "../DeleteContainerButton";
 
 type FormMode = "create" | "edit" | "view";
 
@@ -84,7 +85,6 @@ export default function InspectionFormUnified({
   backLink = "/security",
 }: InspectionFormUnifiedProps) {
   const [isPending, startTransition] = useTransition();
-  const [isDeleting, setIsDeleting] = useState(false);
   const [deletedPhotoIds, setDeletedPhotoIds] = useState<string[]>([]);
   const [formKey, setFormKey] = useState(0);
   const formRef = useRef<HTMLFormElement>(null);
@@ -136,40 +136,6 @@ export default function InspectionFormUnified({
 
   const handleUndoDeletePhoto = (photoId: string) => {
     setDeletedPhotoIds((prev) => prev.filter((id) => id !== photoId));
-  };
-
-  const handleDeleteInspection = async () => {
-    if (
-      !confirm(
-        "Apakah Anda yakin ingin menghapus pemeriksaan ini? Data tidak dapat dikembalikan."
-      )
-    ) {
-      return;
-    }
-
-    setIsDeleting(true);
-
-    const loadingToast = toast.loading("Menghapus pemeriksaan...", {
-      description: "Mohon tunggu, sedang menghapus data pemeriksaan",
-    });
-
-    const result = await deleteInspection(inspection!.id);
-
-    if (result.success) {
-      toast.dismiss(loadingToast);
-      toast.success("Pemeriksaan Berhasil Dihapus! ✓", {
-        description: "Data pemeriksaan telah dihapus dari database",
-        duration: 5000,
-      });
-      setTimeout(() => (window.location.href = backLink), 1500);
-    } else {
-      toast.dismiss(loadingToast);
-      setIsDeleting(false);
-      toast.error("Gagal Menghapus Pemeriksaan", {
-        description: result.error || "Terjadi kesalahan",
-        duration: 5000,
-      });
-    }
   };
 
   const handleSubmit = async (formData: FormData) => {
@@ -304,14 +270,11 @@ export default function InspectionFormUnified({
                 >
                   Edit
                 </Link>
-                <button
-                  onClick={handleDeleteInspection}
-                  disabled={isDeleting}
-                  className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 disabled:bg-slate-400 text-white font-semibold py-2 px-4 rounded-lg transition"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Hapus
-                </button>
+                <DeleteContainerButton
+                  containerId={inspection!.container.id}
+                  variant="button"
+                  redirectTo="/security/dashboard"
+                />
               </div>
             )}
           </div>
@@ -592,7 +555,7 @@ export default function InspectionFormUnified({
                                     className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
                                   />
                                   <label className="ml-2 text-sm text-slate-700 font-medium cursor-pointer">
-                                    Item OK / Sesuai
+                                    Diperiksa
                                   </label>
                                 </div>
 
@@ -752,7 +715,7 @@ export default function InspectionFormUnified({
             ) : (
               <>
                 <Link
-                  href={`${backLink}/${inspection?.id}/edit`}
+                  href={`/security/inspection/${inspection?.id}/edit`}
                   className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition text-center"
                 >
                   Edit Pemeriksaan

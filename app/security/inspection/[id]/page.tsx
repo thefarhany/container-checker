@@ -1,7 +1,7 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
-import InspectionFormUnified from "@/components/security/inspection/InspectionFormUnified";
+import InspectionFormUnified from "@/components/security/InspectionFormUnified";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 

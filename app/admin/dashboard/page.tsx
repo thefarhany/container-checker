@@ -15,6 +15,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { ElementType } from "react";
+import DeleteContainerButton from "@/components/DeleteContainerButton";
 
 interface PageProps {
   searchParams: Promise<{
@@ -446,6 +447,10 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                                 <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
                                 <span className="hidden sm:inline">Detail</span>
                               </Link>
+                              <DeleteContainerButton
+                                containerId={container.id}
+                                variant="small"
+                              />
                             </div>
                           </td>
                         </tr>

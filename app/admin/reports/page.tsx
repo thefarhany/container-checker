@@ -48,20 +48,33 @@ async function getReportData(filters: {
     }
   }
 
-  // Fetch dengan photos untuk export
   const containers = await prisma.container.findMany({
     where: whereClause,
     include: {
       securityCheck: {
         include: {
           user: { select: { name: true } },
-          photos: true, // Include photos untuk export
+          photos: true,
+          responses: {
+            // ← TAMBAHKAN INI!
+            include: {
+              checklistItem: {
+                include: {
+                  category: true,
+                },
+              },
+            },
+            orderBy: [
+              { checklistItem: { category: { order: "asc" } } },
+              { checklistItem: { order: "asc" } },
+            ],
+          },
         },
       },
       checkerData: {
         include: {
           user: { select: { name: true } },
-          photos: true, // Include photos untuk export
+          photos: true,
         },
       },
     },

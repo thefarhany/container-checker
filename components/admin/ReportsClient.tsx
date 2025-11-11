@@ -5,6 +5,19 @@ import { FileSpreadsheet, FileDown, Loader2 } from "lucide-react";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
+interface ChecklistItem {
+  itemText: string;
+  category: {
+    name: string;
+  };
+}
+
+interface SecurityCheckResponse {
+  checked: boolean;
+  notes: string | null;
+  checklistItem: ChecklistItem;
+}
+
 interface Container {
   id: string;
   containerNo: string;
@@ -15,6 +28,7 @@ interface Container {
   securityCheck: {
     user: { name: string } | null;
     photos: { url: string }[];
+    responses: SecurityCheckResponse[];
   } | null;
   checkerData: {
     utcNo: string;
@@ -29,10 +43,23 @@ interface ReportsClientProps {
 
 export default function ReportsClient({ containers }: ReportsClientProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState("");
+
+  const formatChecklistItems = (responses: SecurityCheckResponse[]) => {
+    if (!responses || responses.length === 0) return "-";
+
+    return responses
+      .map((r) => {
+        const status = r.checked ? "✓" : "✗";
+        const notes = r.notes ? ` (${r.notes})` : "";
+        return `${status} ${r.checklistItem.itemText}${notes}`;
+      })
+      .join("; ");
+  };
 
   const exportToCSV = () => {
     setIsExporting(true);
-
+    setExportProgress("Generating CSV...");
     try {
       const headers = [
         "No. Kontainer",
@@ -45,6 +72,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         "Checker",
         "Status",
         "Jumlah Foto",
+        "Checklist Items",
       ];
 
       const rows = containers.map((c) => {
@@ -56,10 +84,13 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
             : hasSecurity
             ? "Pending Checker"
             : "Pending Security";
-
         const totalPhotos =
           (c.securityCheck?.photos?.length || 0) +
           (c.checkerData?.photos?.length || 0);
+
+        const checklistItems = c.securityCheck?.responses
+          ? formatChecklistItems(c.securityCheck.responses)
+          : "-";
 
         return [
           c.containerNo,
@@ -72,6 +103,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           c.checkerData?.user?.name || "-",
           status,
           totalPhotos.toString(),
+          checklistItems,
         ];
       });
 
@@ -89,9 +121,11 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         blob,
         `laporan-kontainer-${new Date().toISOString().split("T")[0]}.csv`
       );
+      setExportProgress("");
     } catch (error) {
       console.error("Error exporting CSV:", error);
       alert("Gagal export CSV");
+      setExportProgress("");
     } finally {
       setIsExporting(false);
     }
@@ -99,12 +133,13 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
 
   const exportToExcel = async () => {
     setIsExporting(true);
+    setExportProgress("Mempersiapkan workbook...");
 
     try {
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Laporan Kontainer");
 
-      worksheet.mergeCells("A1:J1");
+      worksheet.mergeCells("A1:K1");
       const titleCell = worksheet.getCell("A1");
       titleCell.value = "LAPORAN PEMERIKSAAN KONTAINER";
       titleCell.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
@@ -116,7 +151,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       };
       worksheet.getRow(1).height = 30;
 
-      worksheet.mergeCells("A2:J2");
+      worksheet.mergeCells("A2:K2");
       const dateCell = worksheet.getCell("A2");
       dateCell.value = `Tanggal Generate: ${new Date().toLocaleDateString(
         "id-ID",
@@ -143,6 +178,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         "Checker",
         "Status",
         "Foto",
+        "Checklist Items",
         "Keterangan",
       ]);
 
@@ -173,9 +209,55 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       worksheet.getColumn(7).width = 20;
       worksheet.getColumn(8).width = 15;
       worksheet.getColumn(9).width = 100;
-      worksheet.getColumn(10).width = 30;
+      worksheet.getColumn(10).width = 50;
+      worksheet.getColumn(11).width = 30;
+
+      setExportProgress("Mengunduh foto...");
+      const allPhotoData: {
+        container: number;
+        photo: number;
+        buffer: ArrayBuffer;
+      }[] = [];
+
+      for (let i = 0; i < containers.length; i++) {
+        const container = containers[i];
+        const securityPhotos = container.securityCheck?.photos || [];
+        const checkerPhotos = container.checkerData?.photos || [];
+        const allPhotos = [...securityPhotos, ...checkerPhotos];
+        const maxImages = Math.min(allPhotos.length, 5);
+
+        if (maxImages > 0) {
+          setExportProgress(
+            `Mengunduh foto (${i + 1}/${containers.length})...`
+          );
+
+          const photoPromises = allPhotos
+            .slice(0, maxImages)
+            .map(async (photo, j) => {
+              try {
+                const response = await fetch(photo.url);
+                const arrayBuffer = await response.arrayBuffer();
+                return { container: i, photo: j, buffer: arrayBuffer };
+              } catch (error) {
+                console.error(
+                  `Error loading image ${j} for container ${i}:`,
+                  error
+                );
+                return null;
+              }
+            });
+
+          const results = await Promise.all(photoPromises);
+          allPhotoData.push(
+            ...(results.filter((r) => r !== null) as typeof allPhotoData)
+          );
+        }
+      }
+
+      setExportProgress("Membuat spreadsheet...");
 
       let rowIndex = 5;
+
       for (let i = 0; i < containers.length; i++) {
         const container = containers[i];
         const securityPhotos = container.securityCheck?.photos || [];
@@ -191,6 +273,16 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
             ? "Pending Checker"
             : "Pending Security";
 
+        const checklistText = container.securityCheck?.responses
+          ? container.securityCheck.responses
+              .map((r) => {
+                const statusIcon = r.checked ? "✓" : "✗";
+                const notes = r.notes ? ` (${r.notes})` : "";
+                return `${statusIcon} ${r.checklistItem.itemText}${notes}`;
+              })
+              .join("\n")
+          : "-";
+
         const rowHeight = allPhotos.length > 0 ? 150 : 25;
 
         const dataRow = worksheet.addRow([
@@ -203,6 +295,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           container.checkerData?.user?.name || "-",
           status,
           "",
+          checklistText,
           allPhotos.length > 0
             ? `${allPhotos.length} foto terlampir`
             : "Tidak ada foto",
@@ -237,30 +330,24 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           statusCell.font = { color: { argb: "FF9C0006" }, bold: true };
         }
 
-        if (allPhotos.length > 0) {
-          const maxImages = Math.min(allPhotos.length, 5);
-          const imageWidth = 90;
-          const imageHeight = 90;
+        const containerPhotos = allPhotoData.filter((p) => p.container === i);
+        for (const photoData of containerPhotos) {
+          try {
+            const imageId = workbook.addImage({
+              buffer: photoData.buffer as unknown as ExcelJS.Buffer,
+              extension: "jpeg",
+            });
 
-          for (let j = 0; j < maxImages; j++) {
-            const photo = allPhotos[j];
-            try {
-              const response = await fetch(photo.url);
-              const arrayBuffer = await response.arrayBuffer();
-
-              const imageId = workbook.addImage({
-                buffer: arrayBuffer as unknown as ExcelJS.Buffer,
-                extension: "jpeg",
-              });
-
-              worksheet.addImage(imageId, {
-                tl: { col: 8 + j * 0.2, row: rowIndex - 1 + 0.15 },
-                ext: { width: imageWidth, height: imageHeight },
-                editAs: "oneCell",
-              });
-            } catch (error) {
-              console.error(`Error loading image ${j}:`, error);
-            }
+            worksheet.addImage(imageId, {
+              tl: {
+                col: 8 + photoData.photo * 0.2,
+                row: rowIndex - 1 + 0.15,
+              },
+              ext: { width: 90, height: 90 },
+              editAs: "oneCell",
+            });
+          } catch (error) {
+            console.error(`Error adding image:`, error);
           }
         }
 
@@ -268,6 +355,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       }
 
       worksheet.addRow([]);
+
       const summaryRow = worksheet.addRow([
         "",
         "TOTAL",
@@ -279,6 +367,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         containers.length.toString(),
         "",
         "",
+        "",
       ]);
       summaryRow.font = { bold: true };
       summaryRow.fill = {
@@ -287,6 +376,7 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         fgColor: { argb: "FFE7E6E6" },
       };
 
+      setExportProgress("Menyimpan file...");
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -295,45 +385,59 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         blob,
         `laporan-kontainer-${new Date().toISOString().split("T")[0]}.xlsx`
       );
+
+      setExportProgress("");
     } catch (error) {
       console.error("Error exporting Excel:", error);
       alert("Gagal export Excel. Pastikan gambar dapat diakses.");
+      setExportProgress("");
     } finally {
       setIsExporting(false);
     }
   };
 
   return (
-    <div className="border-t border-gray-200 pt-6">
-      <p className="text-sm font-medium text-gray-700 mb-4">
-        Export Data ({containers.length} kontainer)
-      </p>
-      <div className="flex gap-3">
-        <button
-          onClick={exportToExcel}
-          disabled={isExporting || containers.length === 0}
-          className="flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isExporting ? (
-            <>
-              <Loader2 className="w-5 h-5 animate-spin" />
-              Exporting...
-            </>
-          ) : (
-            <>
-              <FileSpreadsheet className="w-5 h-5" />
-              Export Excel
-            </>
-          )}
-        </button>
-        <button
-          onClick={exportToCSV}
-          disabled={isExporting || containers.length === 0}
-          className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <FileDown className="w-5 h-5" />
-          Export CSV
-        </button>
+    <div className="space-y-4">
+      <div className="bg-white p-6 rounded-lg border border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+          Export Data ({containers.length} kontainer)
+        </h2>
+
+        {exportProgress && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+              <span className="text-sm text-blue-700">{exportProgress}</span>
+            </div>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={exportToCSV}
+            disabled={isExporting || containers.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            Export CSV
+          </button>
+          <button
+            onClick={exportToExcel}
+            disabled={isExporting || containers.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="w-4 h-4" />
+            )}
+            Export Excel
+          </button>
+        </div>
       </div>
     </div>
   );

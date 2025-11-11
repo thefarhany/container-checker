@@ -1,7 +1,6 @@
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
-import DeleteIconButton from "@/components/security/dashboard/DeleteIconButton";
 import DateFilterButton from "@/components/DateFilterButton";
 import Link from "next/link";
 import {
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { Prisma } from "@prisma/client";
 import { Metadata } from "next";
+import DeleteContainerButton from "@/components/DeleteContainerButton";
 
 export const metadata: Metadata = {
   title: "Dashboard Security",
@@ -258,7 +258,10 @@ function InspectionRow({ inspection }: { inspection: InspectionRowType }) {
           >
             <Edit className="w-4 h-4" />
           </Link>
-          <DeleteIconButton inspectionId={inspection.id} />
+          <DeleteContainerButton
+            containerId={inspection.container.id}
+            variant="icon"
+          />
         </div>
       </td>
     </tr>

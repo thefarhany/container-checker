@@ -14,6 +14,12 @@ import {
   Filter,
   CalendarDays,
 } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Semua Container | Container Checker",
+  description: "Semua Container",
+};
 
 interface PageProps {
   searchParams: Promise<{

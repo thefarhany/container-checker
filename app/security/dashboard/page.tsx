@@ -21,7 +21,7 @@ import { Metadata } from "next";
 import DeleteContainerButton from "@/components/DeleteContainerButton";
 
 export const metadata: Metadata = {
-  title: "Dashboard Security",
+  title: "Dashboard Security | Container Checker",
   description: "Dashboard pemeriksaan keamanan kontainer",
 };
 

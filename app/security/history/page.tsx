@@ -15,7 +15,7 @@ import {
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "History Security",
+  title: "Riwayat Pemeriksaan | Container Checker",
   description: "Dashboard pemeriksaan keamanan kontainer",
 };
 
@@ -87,7 +87,6 @@ function HistoryRow({ inspection }: { inspection: HistoryInspection }) {
 
   return (
     <tr className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors">
-      {/* Date & Time */}
       <td className="px-4 lg:px-6 py-3 lg:py-4">
         <div className="flex items-start gap-2">
           <Calendar className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
@@ -109,7 +108,6 @@ function HistoryRow({ inspection }: { inspection: HistoryInspection }) {
         </div>
       </td>
 
-      {/* Container Info */}
       <td className="text-center px-4 lg:px-6 py-3 lg:py-4">
         <div className="flex flex-col gap-1">
           <p className="font-mono font-semibold text-slate-900 text-sm">
@@ -121,26 +119,22 @@ function HistoryRow({ inspection }: { inspection: HistoryInspection }) {
         </div>
       </td>
 
-      {/* Company - Desktop only */}
       <td className="text-center px-6 py-4">
         <p className="text-sm text-slate-700">
           {inspection.container.companyName}
         </p>
       </td>
 
-      {/* Plate Number - Desktop only */}
       <td className="text-center px-6 py-4">
         <p className="font-mono text-sm text-slate-700">
           {inspection.container.plateNo}
         </p>
       </td>
 
-      {/* Inspector */}
       <td className="text-center px-4 lg:px-6 py-3 lg:py-4">
         <p className="text-sm text-slate-700">{inspection.inspectorName}</p>
       </td>
 
-      {/* Status */}
       <td className="text-center px-4 lg:px-6 py-3 lg:py-4">
         {hasChecker ? (
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
@@ -155,7 +149,6 @@ function HistoryRow({ inspection }: { inspection: HistoryInspection }) {
         )}
       </td>
 
-      {/* View Detail */}
       <td className="text-center px-4 lg:px-6 py-3 lg:py-4">
         <Link
           href={`/security/inspection/${inspection.id}`}
@@ -184,7 +177,6 @@ export default async function HistoryPage() {
   return (
     <DashboardLayout session={session}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-slate-50">
-        {/* Header */}
         <div className="border-b border-slate-200 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <Link
@@ -207,9 +199,7 @@ export default async function HistoryPage() {
           </div>
         </div>
 
-        {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Statistics Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 lg:gap-6 mb-8">
             <StatCard
               icon={FileText}
@@ -234,7 +224,6 @@ export default async function HistoryPage() {
             />
           </div>
 
-          {/* History Table */}
           <div className="bg-white rounded-xl lg:rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 sm:px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100/50">
               <div className="flex items-center justify-between">
@@ -271,37 +260,30 @@ export default async function HistoryPage() {
                 <table className="min-w-full w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
                     <tr>
-                      {/* Tanggal - Compact di mobile */}
                       <th className="px-3 sm:px-4 lg:px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         Tanggal
                       </th>
 
-                      {/* Kontainer - Compact di mobile */}
                       <th className="px-3 sm:px-4 lg:px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         Kontainer
                       </th>
 
-                      {/* Perusahaan - Hidden di mobile, muncul di desktop */}
                       <th className="px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         Perusahaan
                       </th>
 
-                      {/* No. Plat - Hidden di mobile, muncul di desktop */}
                       <th className="px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         No. Plat
                       </th>
 
-                      {/* Pemeriksa - Hidden di mobile, muncul di tablet+ */}
                       <th className="px-4 lg:px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         Pemeriksa
                       </th>
 
-                      {/* Status - Compact di mobile */}
                       <th className="px-3 sm:px-4 lg:px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         Status
                       </th>
 
-                      {/* Detail - Compact di mobile */}
                       <th className="px-3 sm:px-4 lg:px-6 py-3 text-center text-xs font-semibold text-slate-700 uppercase tracking-wider whitespace-nowrap">
                         Detail
                       </th>

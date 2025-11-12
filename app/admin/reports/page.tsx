@@ -16,6 +16,12 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { Prisma } from "@prisma/client";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Laporan Pengecekan | Container Checker",
+  description: "Laporan Pengecekan",
+};
 
 interface PageProps {
   searchParams: Promise<{
@@ -56,7 +62,6 @@ async function getReportData(filters: {
           user: { select: { name: true } },
           photos: true,
           responses: {
-            // ← TAMBAHKAN INI!
             include: {
               checklistItem: {
                 include: {
@@ -168,7 +173,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
   return (
     <DashboardLayout session={session}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-slate-100">
-        {/* Header dengan ReportsClient untuk Export */}
         <div className="border-b bg-white/80 backdrop-blur-sm">
           <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -181,14 +185,12 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                 </p>
               </div>
 
-              {/* ReportsClient Component untuk Export Button */}
               <ReportsClient containers={containers} />
             </div>
           </div>
         </div>
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Statistics Cards */}
           <div className="mb-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               icon={Package}
@@ -224,7 +226,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             />
           </div>
 
-          {/* Filter Section */}
           <div className="mb-6 rounded-2xl bg-white p-4 sm:p-6 shadow-lg">
             <div className="mb-4 flex items-center gap-2">
               <Filter className="h-5 w-5 text-gray-600" />
@@ -235,7 +236,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
 
             <form className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {/* Status Filter */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Status
@@ -252,7 +252,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                   </select>
                 </div>
 
-                {/* Date From */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Dari Tanggal
@@ -268,7 +267,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                {/* Date To */}
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-gray-700">
                     Sampai Tanggal
@@ -284,7 +282,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
                 <div className="flex items-end gap-2">
                   <button
                     type="submit"
@@ -302,7 +299,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
               </div>
             </form>
 
-            {/* Filter Info */}
             {hasActiveFilter && (
               <div className="mt-4 rounded-lg bg-purple-50 p-3">
                 <p className="text-sm text-purple-800">
@@ -331,7 +327,6 @@ export default async function AdminReportsPage({ searchParams }: PageProps) {
             )}
           </div>
 
-          {/* Table */}
           <div className="overflow-hidden rounded-2xl bg-white shadow-lg">
             <div className="border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100 px-4 sm:px-6 py-4">
               <div className="flex items-center gap-2">

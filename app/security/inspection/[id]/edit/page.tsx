@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Edit Pemeriksaan Security",
+  title: "Edit Pemeriksaan | Container Checker",
   description: "Dashboard pemeriksaan keamanan kontainer",
 };
 

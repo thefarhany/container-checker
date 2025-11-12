@@ -15,6 +15,12 @@ import {
   Plus,
   LucideIcon,
 } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Manajemen User | Container Checker",
+  description: "Manajemen User",
+};
 
 async function getUsers() {
   return await prisma.user.findMany({

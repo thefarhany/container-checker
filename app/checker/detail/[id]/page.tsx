@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import CheckerFormUnified from "@/components/checker/CheckerFormUnified";
 import { notFound, redirect } from "next/navigation";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Detail Container | Container Checker",
+  description: "Detail pemeriksaan kondisi kontainer",
+};
 
 interface PageProps {
   params: Promise<{
@@ -93,7 +99,7 @@ export default async function ViewCheckerPage({ params }: PageProps) {
       <CheckerFormUnified
         mode="view"
         container={container}
-        securityCheck={container.securityCheck || undefined} // ✅ EXPLICIT UNDEFINED
+        securityCheck={container.securityCheck || undefined}
         checkerData={container.checkerData}
         defaultCheckerName={container.checkerData.user?.name || ""}
         backLink="/checker/dashboard"

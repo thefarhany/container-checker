@@ -3,6 +3,12 @@ import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import CheckerFormUnified from "@/components/checker/CheckerFormUnified";
 import { notFound, redirect } from "next/navigation";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Pemeriksaan Checker | Container Checker",
+  description: "Pemeriksaan kondisi kontainer",
+};
 
 interface PageProps {
   params: Promise<{

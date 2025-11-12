@@ -13,6 +13,12 @@ import {
   FileCheck,
   History,
 } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Riwayat Checker | Container Checker",
+  description: "Riwayat pemeriksaan kondisi kontainer",
+};
 
 async function getCompletedContainers() {
   const containers = await prisma.checkerData.findMany({

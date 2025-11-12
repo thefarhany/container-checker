@@ -18,6 +18,12 @@ import {
   LucideIcon,
 } from "lucide-react";
 import { Prisma } from "@prisma/client";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard Checker | Container Checker",
+  description: "Dashboard pemeriksaan kondisi kontainer",
+};
 
 interface PageProps {
   searchParams: Promise<{

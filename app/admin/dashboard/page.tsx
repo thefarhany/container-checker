@@ -16,6 +16,12 @@ import {
 } from "lucide-react";
 import { ElementType } from "react";
 import DeleteContainerButton from "@/components/DeleteContainerButton";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Dashboard Admin | Container Checker",
+  description: "Dashboard Admin",
+};
 
 interface PageProps {
   searchParams: Promise<{

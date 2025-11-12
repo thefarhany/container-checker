@@ -5,7 +5,7 @@ import InspectionFormUnified from "@/components/security/InspectionFormUnified";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Tambah Pengecekan Baru Security",
+  title: "Pemeriksaan Baru | Container Checker",
   description: "Dashboard pemeriksaan keamanan kontainer",
 };
 

@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/Dashboard";
 import CheckerFormUnified from "@/components/checker/CheckerFormUnified";
 import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
+import { getInspectorNamesByRole } from "@/app/actions/inspectorNames";
 
 export const metadata: Metadata = {
   title: "Pemeriksaan Checker | Container Checker",
@@ -18,7 +19,6 @@ interface PageProps {
 
 export default async function SubmitCheckerPage({ params }: PageProps) {
   const session = await getSession();
-
   if (!session || session.role !== "CHECKER") {
     redirect("/");
   }
@@ -72,22 +72,53 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   if (!container.securityCheck) {
     return (
       <DashboardLayout session={session}>
-        <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-6 px-4 sm:px-6 lg:px-8">
-          <div className="max-w-4xl mx-auto">
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-yellow-900 mb-2">
-                ⚠️ Kontainer Belum Diperiksa Security
-              </h2>
-              <p className="text-yellow-700">
-                Kontainer harus diperiksa oleh Security terlebih dahulu sebelum
-                Checker melakukan pemeriksaan.
-              </p>
-            </div>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <span className="text-2xl">⚠️</span>
+            <h3 className="font-semibold">
+              Kontainer Belum Diperiksa Security
+            </h3>
           </div>
+          <p className="mt-2 text-sm text-amber-700">
+            Kontainer harus diperiksa oleh Security terlebih dahulu sebelum
+            Checker melakukan pemeriksaan.
+          </p>
         </div>
       </DashboardLayout>
     );
   }
+
+  const allHistories = await prisma.securityCheckResponseHistory.findMany({
+    where: {
+      securityCheckId: container.securityCheck.id,
+    },
+    include: {
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      changedAt: "desc",
+    },
+  });
+
+  const historyByChecklistItem = new Map<string, typeof allHistories>();
+  allHistories.forEach((history) => {
+    const existing = historyByChecklistItem.get(history.checklistItemId) || [];
+    existing.push(history);
+    historyByChecklistItem.set(history.checklistItemId, existing);
+  });
+
+  const responsesWithHistory = container.securityCheck.responses.map(
+    (response) => ({
+      ...response,
+      history: historyByChecklistItem.get(response.checklistItemId) || [],
+    })
+  );
+
+  const inspectorNames = await getInspectorNamesByRole("CHECKER");
 
   if (container.checkerData) {
     return (
@@ -95,10 +126,12 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
         <CheckerFormUnified
           mode="view"
           container={container}
-          securityCheck={container.securityCheck}
+          securityCheck={{
+            ...container.securityCheck,
+            responses: responsesWithHistory,
+          }}
           checkerData={container.checkerData}
-          defaultCheckerName={container.checkerData.user?.name || ""}
-          backLink="/checker/dashboard"
+          inspectorNames={inspectorNames}
         />
       </DashboardLayout>
     );
@@ -107,11 +140,13 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   return (
     <DashboardLayout session={session}>
       <CheckerFormUnified
-        mode="submit"
+        mode="create"
         container={container}
-        securityCheck={container.securityCheck}
-        defaultCheckerName={session.name}
-        backLink="/checker/dashboard"
+        securityCheck={{
+          ...container.securityCheck,
+          responses: responsesWithHistory,
+        }}
+        inspectorNames={inspectorNames}
       />
     </DashboardLayout>
   );

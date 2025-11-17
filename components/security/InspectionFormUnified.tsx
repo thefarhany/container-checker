@@ -7,7 +7,7 @@ import {
   updateInspection,
   deleteInspection,
 } from "@/app/actions/inspections";
-import { ArrowLeft, Check, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, History, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import ImageUploadClientUnified from "@/components/security/ImageUploadClientUnified";
 import DeleteContainerButton from "../DeleteContainerButton";
@@ -20,11 +20,23 @@ interface Photo {
   filename: string;
 }
 
+interface ResponseHistory {
+  id: string;
+  notes: string | null;
+  checked: boolean;
+  changedAt: Date;
+  changedBy: string;
+  user: {
+    name: string;
+  };
+}
+
 interface SecurityCheckResponse {
   id: string;
   checklistItemId: string;
   checked: boolean;
   notes: string | null;
+  history?: ResponseHistory[];
 }
 
 interface Container {
@@ -69,20 +81,27 @@ interface ResponseMap {
   [key: string]: SecurityCheckResponse;
 }
 
+interface InspectorName {
+  id: string;
+  name: string;
+}
+
 interface InspectionFormUnifiedProps {
   mode: FormMode;
   categories: Category[];
   inspection?: Inspection;
   defaultInspectorName?: string;
   backLink?: string;
+  userRole: "SECURITY" | "CHECKER";
+  inspectorNames: InspectorName[];
 }
 
 export default function InspectionFormUnified({
   mode,
   categories,
   inspection,
-  defaultInspectorName = "",
-  backLink = "/security",
+  backLink = "/security/dashboard",
+  inspectorNames,
 }: InspectionFormUnifiedProps) {
   const [isPending, startTransition] = useTransition();
   const [deletedPhotoIds, setDeletedPhotoIds] = useState<string[]>([]);
@@ -96,6 +115,17 @@ export default function InspectionFormUnified({
       year: "numeric",
       month: "long",
       day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatHistoryDate = (date: Date | string) => {
+    const d = new Date(date);
+    return d.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -169,7 +199,6 @@ export default function InspectionFormUnified({
         }
 
         toast.dismiss(loadingToast);
-
         const successMessage =
           mode === "create"
             ? "Data Container Berhasil Ditambahkan! ✓"
@@ -199,6 +228,7 @@ export default function InspectionFormUnified({
             mode === "create"
               ? "Data Container Berhasil Ditambahkan! ✓"
               : "Data Pemeriksaan Berhasil Diperbarui! ✓";
+
           toast.success(successMessage, {
             duration: 5000,
           });
@@ -229,7 +259,6 @@ export default function InspectionFormUnified({
   );
 
   const sortedCategories = [...categories].sort((a, b) => a.order - b.order);
-
   const currentPhotos = inspection?.photos || [];
   const remainingPhotos = currentPhotos.filter(
     (photo) => !deletedPhotoIds.includes(photo.id)
@@ -244,493 +273,511 @@ export default function InspectionFormUnified({
   const isCreateMode = mode === "create";
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white py-6 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <Link
-            href={backLink}
-            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Kembali
-          </Link>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-                {title}
-              </h1>
-              <p className="text-slate-600 mt-2">{subtitle}</p>
-            </div>
+    <div className="max-w-5xl mx-auto p-4 space-y-6">
+      <div className="flex items-center gap-4 pb-4 border-b">
+        <Link
+          href={backLink}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 transition"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium">Kembali</span>
+        </Link>
+      </div>
 
-            {isViewMode && (
-              <div className="flex gap-2">
-                <Link
-                  href={`/security/inspection/${inspection?.id}/edit`}
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-                >
-                  Edit
-                </Link>
-                <DeleteContainerButton
-                  containerId={inspection!.container.id}
-                  variant="button"
-                  redirectTo="/security/dashboard"
-                />
-              </div>
-            )}
-          </div>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+        <p className="text-gray-600 mt-1">{subtitle}</p>
+      </div>
 
-        {isViewMode && (
-          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">
-                  Progress Pemeriksaan
-                </p>
-                <p className="text-2xl font-bold text-blue-900 mt-1">
-                  {checkedItems} dari {totalItems} item tercentang
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-bold text-blue-900">
-                  {totalItems > 0
+      {isViewMode && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-2">
+            Progress Pemeriksaan
+          </h3>
+          <p className="text-sm text-blue-700 mb-3">
+            {checkedItems} dari {totalItems} item tercentang
+          </p>
+          <div className="relative w-full bg-blue-200 rounded-full h-3 overflow-hidden">
+            <div
+              className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-300"
+              style={{
+                width: `${
+                  totalItems > 0
                     ? ((checkedItems / totalItems) * 100).toFixed(0)
-                    : 0}
-                  %
-                </p>
-              </div>
-            </div>
+                    : 0
+                }%`,
+              }}
+            />
           </div>
-        )}
+          <p className="text-xs text-blue-600 mt-2 text-right">
+            {totalItems > 0
+              ? ((checkedItems / totalItems) * 100).toFixed(0)
+              : 0}
+            %
+          </p>
+        </div>
+      )}
 
-        <form ref={formRef} action={handleSubmit} className="space-y-6">
-          <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">
-              Informasi Kontainer
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nama Perusahaan{" "}
-                  {!isViewMode && <span className="text-red-500">*</span>}
-                </label>
-                {isViewMode ? (
-                  <p className="text-slate-900">
-                    {inspection?.container.companyName}
-                  </p>
-                ) : (
-                  <input
-                    type="text"
-                    name="companyName"
-                    required={!isViewMode}
-                    disabled={isViewMode}
-                    defaultValue={inspection?.container.companyName || ""}
-                    className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-slate-100"
-                    placeholder="Masukkan nama perusahaan"
-                  />
-                )}
-              </div>
+      <form
+        ref={formRef}
+        key={formKey}
+        action={handleSubmit}
+        className="space-y-6"
+      >
+        <div className="bg-white shadow rounded-lg p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-4">
+            Informasi Kontainer
+          </h2>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nomor Kontainer{" "}
-                  {!isViewMode && <span className="text-red-500">*</span>}
-                </label>
-                {isViewMode ? (
-                  <p className="text-slate-900 font-mono">
-                    {inspection?.container.containerNo}
-                  </p>
-                ) : (
-                  <input
-                    type="text"
-                    name="containerNo"
-                    required={!isViewMode}
-                    disabled={isViewMode}
-                    defaultValue={inspection?.container.containerNo || ""}
-                    className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-slate-100"
-                    placeholder="Contoh: TCLU1234567"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nomor Seal{" "}
-                  {!isViewMode && <span className="text-red-500">*</span>}
-                </label>
-                {isViewMode ? (
-                  <p className="text-slate-900 font-mono">
-                    {inspection?.container.sealNo}
-                  </p>
-                ) : (
-                  <input
-                    type="text"
-                    name="sealNo"
-                    required={!isViewMode}
-                    disabled={isViewMode}
-                    defaultValue={inspection?.container.sealNo || ""}
-                    className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-slate-100"
-                    placeholder="Masukkan nomor seal"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nomor Plat{" "}
-                  {!isViewMode && <span className="text-red-500">*</span>}
-                </label>
-                {isViewMode ? (
-                  <p className="text-slate-900 font-mono">
-                    {inspection?.container.plateNo}
-                  </p>
-                ) : (
-                  <input
-                    type="text"
-                    name="plateNo"
-                    required={!isViewMode}
-                    disabled={isViewMode}
-                    defaultValue={inspection?.container.plateNo || ""}
-                    className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-slate-100"
-                    placeholder="Contoh: B 1234 AB"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Tanggal Pemeriksaan{" "}
-                  {!isViewMode && <span className="text-red-500">*</span>}
-                </label>
-                {isViewMode ? (
-                  <p className="text-slate-900">
-                    {inspection?.inspectionDate
-                      ? formatDate(inspection.inspectionDate)
-                      : "-"}
-                  </p>
-                ) : (
-                  <input
-                    type="datetime-local"
-                    name="inspectionDate"
-                    required={!isViewMode}
-                    disabled={isViewMode}
-                    defaultValue={
-                      inspection
-                        ? formatDatetime(inspection.inspectionDate)
-                        : ""
-                    }
-                    className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-slate-100"
-                  />
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Nama Pemeriksa{" "}
-                  {!isViewMode && <span className="text-red-500">*</span>}
-                </label>
-                {isViewMode ? (
-                  <p className="text-slate-900">{inspection?.inspectorName}</p>
-                ) : (
-                  <input
-                    type="text"
-                    name="inspectorName"
-                    required={!isViewMode}
-                    disabled={isViewMode}
-                    defaultValue={
-                      inspection?.inspectorName || defaultInspectorName
-                    }
-                    className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition disabled:bg-slate-100"
-                    placeholder="Masukkan nama pemeriksa"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Catatan Umum
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nama Perusahaan{" "}
+                {!isViewMode && <span className="text-red-500">*</span>}
               </label>
               {isViewMode ? (
-                <div className="bg-slate-50 border border-slate-200 rounded p-3">
-                  <p className="text-slate-700 whitespace-pre-wrap">
-                    {inspection?.remarks || "-"}
-                  </p>
-                </div>
+                <p className="text-gray-900">
+                  {inspection?.container.companyName}
+                </p>
               ) : (
-                <textarea
-                  name="remarks"
-                  rows={3}
-                  disabled={isViewMode}
-                  defaultValue={inspection?.remarks || ""}
-                  className="w-full px-4 py-2 text-black border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none disabled:bg-slate-100"
-                  placeholder="Masukkan catatan atau keterangan tambahan (opsional)"
+                <input
+                  type="text"
+                  name="companyName"
+                  required
+                  defaultValue={inspection?.container.companyName}
+                  className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Masukkan nama perusahaan"
                 />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nomor Kontainer{" "}
+                {!isViewMode && <span className="text-red-500">*</span>}
+              </label>
+              {isViewMode ? (
+                <p className="text-gray-900">
+                  {inspection?.container.containerNo}
+                </p>
+              ) : (
+                <input
+                  type="text"
+                  name="containerNo"
+                  required
+                  defaultValue={inspection?.container.containerNo}
+                  className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Masukkan nomor kontainer"
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nomor Seal{" "}
+                {!isViewMode && <span className="text-red-500">*</span>}
+              </label>
+              {isViewMode ? (
+                <p className="text-gray-900">{inspection?.container.sealNo}</p>
+              ) : (
+                <input
+                  type="text"
+                  name="sealNo"
+                  required
+                  defaultValue={inspection?.container.sealNo}
+                  className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Masukkan nomor seal"
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nomor Plat{" "}
+                {!isViewMode && <span className="text-red-500">*</span>}
+              </label>
+              {isViewMode ? (
+                <p className="text-gray-900">{inspection?.container.plateNo}</p>
+              ) : (
+                <input
+                  type="text"
+                  name="plateNo"
+                  required
+                  defaultValue={inspection?.container.plateNo}
+                  className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Masukkan nomor plat"
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Tanggal Pemeriksaan{" "}
+                {!isViewMode && <span className="text-red-500">*</span>}
+              </label>
+              {isViewMode ? (
+                <p className="text-gray-900">
+                  {inspection?.inspectionDate
+                    ? formatDate(inspection.inspectionDate)
+                    : "-"}
+                </p>
+              ) : (
+                <input
+                  type="datetime-local"
+                  name="inspectionDate"
+                  required
+                  defaultValue={
+                    inspection?.inspectionDate
+                      ? formatDatetime(inspection.inspectionDate)
+                      : ""
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Nama Pemeriksa{" "}
+                {!isViewMode && <span className="text-red-500">*</span>}
+              </label>
+              {isViewMode ? (
+                <p className="text-gray-900">{inspection?.inspectorName}</p>
+              ) : (
+                <select
+                  name="inspectorName"
+                  required
+                  defaultValue={inspection?.inspectorName || ""}
+                  className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">-- Pilih Nama Pemeriksa --</option>
+                  {inspectorNames.map((inspector) => (
+                    <option key={inspector.id} value={inspector.name}>
+                      {inspector.name}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
           </div>
 
-          <div className="space-y-6">
-            {sortedCategories.map((category, categoryIndex) => (
-              <div
-                key={category.id}
-                className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden"
-              >
-                <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-6 py-4 border-b border-slate-200">
-                  <h3 className="text-base sm:text-lg font-semibold text-slate-900">
-                    {categoryIndex + 1}. {category.name}
-                  </h3>
-                  {category.description && (
-                    <p className="text-sm text-slate-600 mt-1">
-                      {category.description}
-                    </p>
-                  )}
-                </div>
-
-                <div className="divide-y divide-slate-200">
-                  {category.items
-                    .sort((a, b) => a.order - b.order)
-                    .map((item, itemIndex) => {
-                      const response = responseMap[item.id];
-
-                      return (
-                        <div
-                          key={item.id}
-                          className="p-4 sm:p-6 hover:bg-slate-50 transition"
-                        >
-                          <div className="flex items-start gap-3 mb-3">
-                            <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-semibold">
-                              {itemIndex + 1}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm sm:text-base font-medium text-slate-900">
-                                {item.itemText}
-                              </p>
-                              {item.description && (
-                                <p className="text-xs sm:text-sm text-slate-600 mt-1">
-                                  {item.description}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className="ml-9 space-y-3">
-                            {isViewMode ? (
-                              <>
-                                <div className="flex items-center gap-2">
-                                  {response?.checked ? (
-                                    <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
-                                      <Check className="w-4 h-4" />
-                                      Diperiksa
-                                    </div>
-                                  ) : (
-                                    <div className="inline-flex items-center gap-2 bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm font-medium">
-                                      <span className="w-2 h-2 bg-yellow-600 rounded-full" />
-                                      Belum Diperiksa
-                                    </div>
-                                  )}
-                                </div>
-
-                                {response?.notes && (
-                                  <div>
-                                    <p className="text-xs sm:text-sm font-medium text-slate-700 mb-2">
-                                      Catatan:
-                                    </p>
-                                    <div className="bg-slate-50 border border-slate-200 rounded p-2 sm:p-3">
-                                      <p className="text-sm text-slate-700 whitespace-pre-wrap">
-                                        {response.notes}
-                                      </p>
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                <div className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    name={`checklist_${item.id}`}
-                                    disabled={isViewMode}
-                                    defaultChecked={response?.checked || false}
-                                    className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
-                                  />
-                                  <label className="ml-2 text-sm text-slate-700 font-medium cursor-pointer">
-                                    Diperiksa
-                                  </label>
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs sm:text-sm font-medium text-slate-700 mb-2">
-                                    Catatan / Keterangan:
-                                  </label>
-                                  <textarea
-                                    name={`notes_${item.id}`}
-                                    rows={2}
-                                    disabled={isViewMode}
-                                    defaultValue={response?.notes || ""}
-                                    className="w-full px-3 py-2 text-black text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition resize-none disabled:bg-slate-100"
-                                    placeholder="Masukkan catatan atau temuan (opsional)"
-                                  />
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              </div>
-            ))}
+          <div className="mt-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Catatan Umum
+            </label>
+            {isViewMode ? (
+              <p className="text-gray-900">{inspection?.remarks || "-"}</p>
+            ) : (
+              <textarea
+                name="remarks"
+                rows={3}
+                defaultValue={inspection?.remarks || ""}
+                className="w-full px-4 py-2 border border-gray-300 text-black rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Catatan tambahan (opsional)"
+              />
+            )}
           </div>
+        </div>
 
-          {isEditMode && inspection && inspection.photos.length > 0 && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Foto Pemeriksaan Saat Ini
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {inspection.photos.map((photo) => {
-                  const isDeleted = deletedPhotoIds.includes(photo.id);
+        {/* Checklist Categories */}
+        {sortedCategories.map((category, categoryIndex) => (
+          <div
+            key={category.id}
+            className="bg-white rounded-lg shadow-sm p-6 mb-6"
+          >
+            <h2 className="text-xl font-bold text-slate-900 mb-2">
+              {categoryIndex + 1}. {category.name}
+            </h2>
+            {category.description && (
+              <p className="text-sm text-slate-600 mb-4">
+                {category.description}
+              </p>
+            )}
+
+            <div className="space-y-4">
+              {category.items
+                .sort((a, b) => a.order - b.order)
+                .map((item, itemIndex) => {
+                  const response = responseMap[item.id];
+                  // TAMBAH: Sort history by date descending (terbaru di atas)
+                  const itemHistory = (response?.history || []).sort(
+                    (a, b) =>
+                      new Date(b.changedAt).getTime() -
+                      new Date(a.changedAt).getTime()
+                  );
 
                   return (
                     <div
-                      key={photo.id}
-                      className={`relative group rounded-lg overflow-hidden border ${
-                        isDeleted
-                          ? "border-red-300 bg-red-50"
-                          : "border-slate-300"
-                      }`}
+                      key={item.id}
+                      className="border border-slate-200 rounded-lg p-4 bg-slate-50"
                     >
-                      <img
-                        src={photo.url}
-                        alt={photo.filename}
-                        className={`w-full h-32 object-cover ${
-                          isDeleted ? "opacity-50" : ""
-                        }`}
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition flex items-center justify-center">
-                        {isDeleted ? (
-                          <button
-                            type="button"
-                            onClick={() => handleUndoDeletePhoto(photo.id)}
-                            className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs font-medium transition"
-                          >
-                            Batalkan Hapus
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => handleDeletePhoto(photo.id)}
-                            className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-semibold text-sm">
+                          {itemIndex + 1}
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-slate-900 mb-1">
+                            {item.itemText}
+                          </h3>
+                          {item.description && (
+                            <p className="text-sm text-slate-600 mb-3">
+                              {item.description}
+                            </p>
+                          )}
+
+                          {isViewMode ? (
+                            <>
+                              {response?.checked ? (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                  <Check className="w-4 h-4" />
+                                  Diperiksa
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-sm">
+                                  <X className="w-4 h-4" />
+                                  Belum Diperiksa
+                                </span>
+                              )}
+
+                              {response?.notes && (
+                                <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                  <p className="text-sm font-semibold text-blue-900 mb-1">
+                                    Catatan:
+                                  </p>
+                                  <p className="text-sm text-black">
+                                    {response.notes}
+                                  </p>
+                                </div>
+                              )}
+
+                              {/* TAMBAHKAN: History Section */}
+                              {itemHistory.length > 0 && (
+                                <div className="mt-3 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <History className="w-4 h-4 text-slate-600" />
+                                    <p className="text-sm font-semibold text-slate-700">
+                                      Riwayat Perubahan
+                                    </p>
+                                  </div>
+                                  <div className="space-y-2">
+                                    {itemHistory.map((hist, idx) => (
+                                      <div
+                                        key={hist.id}
+                                        className="bg-white border border-slate-200 rounded p-2 text-xs"
+                                      >
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="font-medium text-slate-700">
+                                            Perubahan ke-
+                                            {itemHistory.length - idx}
+                                          </span>
+                                          <span className="text-slate-500">
+                                            {formatHistoryDate(hist.changedAt)}
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                          {hist.checked ? (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 text-green-700 rounded text-xs">
+                                              <Check className="w-3 h-3" />
+                                              Diperiksa
+                                            </span>
+                                          ) : (
+                                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-100 text-slate-600 rounded text-xs">
+                                              <X className="w-3 h-3" />
+                                              Belum Diperiksa
+                                            </span>
+                                          )}
+                                          <span className="text-slate-600">
+                                            oleh {hist.user.name}
+                                          </span>
+                                        </div>
+                                        {hist.notes && (
+                                          <p className="text-black bg-slate-50 p-2 rounded">
+                                            {hist.notes}
+                                          </p>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              <div className="flex items-center gap-2 mb-3">
+                                <input
+                                  type="checkbox"
+                                  id={`checklist-${item.id}`}
+                                  name={`checklist-${item.id}`}
+                                  defaultChecked={response?.checked || false}
+                                  disabled={isPending}
+                                  className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                                />
+                                <label
+                                  htmlFor={`checklist-${item.id}`}
+                                  className="text-sm font-medium text-slate-700 cursor-pointer"
+                                >
+                                  Diperiksa
+                                </label>
+                              </div>
+
+                              <div>
+                                <label
+                                  htmlFor={`notes-${item.id}`}
+                                  className="block text-sm font-medium text-slate-700 mb-2"
+                                >
+                                  Catatan / Keterangan:
+                                </label>
+                                <textarea
+                                  id={`notes-${item.id}`}
+                                  name={`notes-${item.id}`}
+                                  rows={2}
+                                  defaultValue={response?.notes || ""}
+                                  disabled={isPending}
+                                  placeholder="Tambahkan catatan jika diperlukan..."
+                                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none text-sm text-black"
+                                />
+                              </div>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
                 })}
-              </div>
-              <p className="text-xs sm:text-sm text-slate-600 mt-3">
-                Total foto saat ini: {remainingPhotos.length}{" "}
-                {remainingPhotos.length === 0 ? "(akan dihapus semua)" : ""}
-              </p>
             </div>
-          )}
+          </div>
+        ))}
 
-          {isViewMode && inspection && inspection.photos.length > 0 && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-slate-900 mb-4">
-                Foto Pemeriksaan
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {inspection.photos.map((photo) => (
-                  <a
+        {isEditMode && inspection && inspection.photos.length > 0 && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Foto Pemeriksaan Saat Ini
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {inspection.photos.map((photo) => {
+                const isDeleted = deletedPhotoIds.includes(photo.id);
+                return (
+                  <div
                     key={photo.id}
-                    href={photo.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="group relative rounded-lg overflow-hidden border border-slate-300 hover:shadow-lg transition"
+                    className={`relative group ${
+                      isDeleted ? "opacity-50 grayscale" : ""
+                    }`}
                   >
                     <img
                       src={photo.url}
                       alt={photo.filename}
-                      className="w-full h-32 object-cover group-hover:scale-105 transition"
+                      className="w-full h-40 object-cover rounded-lg"
                     />
-                  </a>
-                ))}
-              </div>
-              <p className="text-xs sm:text-sm text-slate-600 mt-3">
-                Total foto: {inspection.photos.length}
-              </p>
+                    {isDeleted ? (
+                      <button
+                        type="button"
+                        onClick={() => handleUndoDeletePhoto(photo.id)}
+                        className="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded text-xs font-medium transition"
+                      >
+                        Batalkan Hapus
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePhoto(photo.id)}
+                        className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          )}
-
-          {isViewMode && (!inspection || inspection.photos.length === 0) && (
-            <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm text-center">
-              <p className="text-slate-600">
-                Tidak ada foto untuk pemeriksaan ini
-              </p>
-            </div>
-          )}
-
-          {!isViewMode && (
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-slate-200">
-              <h3 className="text-lg font-semibold text-slate-800 mb-4">
-                {isEditMode && inspection?.photos.length
-                  ? "Tambah Foto Pemeriksaan"
-                  : "Upload Foto Pemeriksaan"}
-              </h3>
-              <ImageUploadClientUnified
-                mode={mode}
-                existingPhotos={inspection?.photos}
-                key={formKey}
-              />
-            </div>
-          )}
-
-          <div className="flex gap-3">
-            {!isViewMode ? (
-              <>
-                <button
-                  type="submit"
-                  disabled={isPending}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
-                >
-                  {isPending
-                    ? isCreateMode
-                      ? "Menyimpan..."
-                      : "Menyimpan Perubahan..."
-                    : isCreateMode
-                    ? "Simpan Pemeriksaan"
-                    : "Simpan Perubahan"}
-                </button>
-                <Link
-                  href={backLink}
-                  className="px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition"
-                >
-                  Batal
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link
-                  href={`/security/inspection/${inspection?.id}/edit`}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition text-center"
-                >
-                  Edit Pemeriksaan
-                </Link>
-                <Link
-                  href={backLink}
-                  className="px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition"
-                >
-                  Kembali
-                </Link>
-              </>
-            )}
+            <p className="text-sm text-gray-600 mt-4">
+              Total foto saat ini: {remainingPhotos.length}{" "}
+              {remainingPhotos.length === 0 ? "(akan dihapus semua)" : ""}
+            </p>
           </div>
-        </form>
-      </div>
+        )}
+
+        {isViewMode && inspection && inspection.photos.length > 0 && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              Foto Pemeriksaan
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {inspection.photos.map((photo) => (
+                <div key={photo.id} className="relative group">
+                  <img
+                    src={photo.url}
+                    alt={photo.filename}
+                    className="w-full h-40 object-cover rounded-lg"
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-sm text-gray-600 mt-4">
+              Total foto: {inspection.photos.length}
+            </p>
+          </div>
+        )}
+
+        {isViewMode && (!inspection || inspection.photos.length === 0) && (
+          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+            <p className="text-gray-600">
+              Tidak ada foto untuk pemeriksaan ini
+            </p>
+          </div>
+        )}
+
+        {!isViewMode && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
+              {isEditMode && inspection?.photos.length
+                ? "Tambah Foto Pemeriksaan"
+                : "Upload Foto Pemeriksaan"}
+            </h2>
+            <ImageUploadClientUnified />
+          </div>
+        )}
+
+        <div className="flex gap-3">
+          {!isViewMode ? (
+            <>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isPending
+                  ? isCreateMode
+                    ? "Menyimpan..."
+                    : "Menyimpan Perubahan..."
+                  : isCreateMode
+                  ? "Simpan Pemeriksaan"
+                  : "Simpan Perubahan"}
+              </button>
+              <Link
+                href={backLink}
+                className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+              >
+                Batal
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href={`${inspection?.id}/edit`}
+                className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-3 px-6 rounded-lg transition text-center"
+              >
+                Edit Pemeriksaan
+              </Link>
+              <Link
+                href={backLink}
+                className="px-6 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition"
+              >
+                Kembali
+              </Link>
+            </>
+          )}
+        </div>
+      </form>
     </div>
   );
 }

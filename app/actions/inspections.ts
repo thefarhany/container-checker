@@ -64,8 +64,8 @@ export async function createInspection(formData: FormData): Promise<void> {
 
     const responses = checklistItems.map((item) => ({
       checklistItemId: item.id,
-      checked: formData.get(`checklist_${item.id}`) === "on",
-      notes: (formData.get(`notes_${item.id}`) as string) || null,
+      checked: formData.get(`checklist-${item.id}`) === "on",
+      notes: (formData.get(`notes-${item.id}`) as string) || null,
     }));
 
     const atLeastOneChecked = responses.some((r) => r.checked === true);
@@ -206,6 +206,7 @@ export async function updateInspection(
       include: {
         container: true,
         photos: true,
+        responses: true,
       },
     });
 
@@ -231,17 +232,14 @@ export async function updateInspection(
 
     const responses = checklistItems.map((item) => ({
       checklistItemId: item.id,
-      checked: formData.get(`checklist_${item.id}`) === "on",
-      notes: (formData.get(`notes_${item.id}`) as string) || null,
+      checked: formData.get(`checklist-${item.id}`) === "on",
+      notes: (formData.get(`notes-${item.id}`) as string) || null,
     }));
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
 
-    const uploadedPhotoUrls: {
-      url: string;
-      filename: string;
-    }[] = [];
+    const uploadedPhotoUrls: { url: string; filename: string }[] = [];
 
     const remainingPhotoCount =
       inspection.photos.length - deletedPhotoIds.length;
@@ -282,83 +280,148 @@ export async function updateInspection(
         );
       }
 
-      const { data: urlData } = supabaseAdmin.storage
-        .from("container-photos")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("container-photos").getPublicUrl(filePath);
 
       uploadedPhotoUrls.push({
-        url: urlData.publicUrl,
+        url: publicUrl,
         filename: photo.name,
       });
     }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.container.update({
-        where: { id: inspection.containerId },
-        data: containerData,
-      });
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.container.update({
+          where: { id: inspection.containerId },
+          data: containerData,
+        });
 
-      await tx.securityCheck.update({
-        where: { id: inspectionId },
-        data: {
-          inspectorName,
-          remarks,
-          inspectionDate: containerData.inspectionDate,
-        },
-      });
+        await tx.securityCheck.update({
+          where: { id: inspectionId },
+          data: {
+            inspectorName,
+            remarks,
+            inspectionDate: containerData.inspectionDate,
+          },
+        });
 
-      await tx.securityCheckResponse.deleteMany({
-        where: { securityCheckId: inspectionId },
-      });
+        const oldResponses = inspection.responses;
+        const changedItems = [];
 
-      await tx.securityCheckResponse.createMany({
-        data: responses.map((r) => ({
-          securityCheckId: inspectionId,
-          checklistItemId: r.checklistItemId,
-          checked: r.checked,
-          notes: r.notes,
-        })),
-      });
+        for (const newResponse of responses) {
+          const oldResponse = oldResponses.find(
+            (r) => r.checklistItemId === newResponse.checklistItemId
+          );
 
-      if (deletedPhotoIds.length > 0) {
-        const photosToDelete = inspection.photos.filter((p) =>
-          deletedPhotoIds.includes(p.id)
-        );
+          if (oldResponse) {
+            const oldNotes = oldResponse.notes || "";
+            const newNotes = newResponse.notes || "";
 
-        for (const photo of photosToDelete) {
-          const filePath = photo.url.split("/").slice(-2).join("/");
-          try {
-            await supabaseAdmin.storage
-              .from("container-photos")
-              .remove([filePath]);
-          } catch {}
+            const hasChanged =
+              oldResponse.checked !== newResponse.checked ||
+              oldNotes !== newNotes;
+
+            if (hasChanged) {
+              changedItems.push({
+                checklistItemId: newResponse.checklistItemId,
+                notes: newResponse.notes,
+                checked: newResponse.checked,
+              });
+            }
+          }
         }
 
-        await tx.photo.deleteMany({
-          where: { id: { in: deletedPhotoIds } },
+        await tx.securityCheckResponse.deleteMany({
+          where: { securityCheckId: inspectionId },
         });
-      }
 
-      if (uploadedPhotoUrls.length > 0) {
-        await tx.photo.createMany({
-          data: uploadedPhotoUrls.map((photo) => ({
+        await tx.securityCheckResponse.createMany({
+          data: responses.map((r) => ({
             securityCheckId: inspectionId,
-            url: photo.url,
-            filename: photo.filename,
+            checklistItemId: r.checklistItemId,
+            checked: r.checked,
+            notes: r.notes,
           })),
         });
-      }
-    });
 
-    revalidatePath("/security/dashboard");
-    revalidatePath(`/security/inspection/${inspectionId}`);
-    redirect("/security/dashboard");
+        const newResponsesCreated = await tx.securityCheckResponse.findMany({
+          where: { securityCheckId: inspectionId },
+        });
+
+        if (changedItems.length > 0) {
+          const historyData = [];
+
+          for (const item of changedItems) {
+            const newResponse = newResponsesCreated.find(
+              (r) => r.checklistItemId === item.checklistItemId
+            );
+
+            if (newResponse) {
+              historyData.push({
+                responseId: newResponse.id,
+                checklistItemId: item.checklistItemId,
+                securityCheckId: inspectionId,
+                notes: item.notes,
+                checked: item.checked,
+                changedBy: session.userId,
+              });
+            }
+          }
+
+          if (historyData.length > 0) {
+            await tx.securityCheckResponseHistory.createMany({
+              data: historyData,
+            });
+          }
+        }
+
+        if (deletedPhotoIds.length > 0) {
+          const photosToDelete = inspection.photos.filter((p) =>
+            deletedPhotoIds.includes(p.id)
+          );
+
+          for (const photo of photosToDelete) {
+            const filePath = photo.url.split("/").slice(-2).join("/");
+            try {
+              await supabaseAdmin.storage
+                .from("container-photos")
+                .remove([filePath]);
+            } catch {
+              // Ignore storage errors
+            }
+          }
+
+          await tx.photo.deleteMany({
+            where: { id: { in: deletedPhotoIds } },
+          });
+        }
+
+        if (uploadedPhotoUrls.length > 0) {
+          await tx.photo.createMany({
+            data: uploadedPhotoUrls.map((photo) => ({
+              securityCheckId: inspectionId,
+              url: photo.url,
+              filename: photo.filename,
+            })),
+          });
+        }
+      },
+      {
+        maxWait: 10000,
+        timeout: 15000,
+      }
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw error;
     }
     throw new Error("Gagal mengupdate data pemeriksaan");
   }
+
+  revalidatePath("/security/dashboard");
+  revalidatePath(`/security/inspection/${inspectionId}`);
+  redirect("/security/dashboard");
 }
 
 /**

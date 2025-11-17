@@ -6,24 +6,26 @@ import { prisma } from "@/lib/prisma";
 import { supabaseAdmin } from "@/lib/supabase";
 import { revalidatePath } from "next/cache";
 
-/**
- * Submit new checker data for a container
- */
 export async function submitCheckerData(
   containerId: string,
   formData: FormData
 ): Promise<void> {
-  const session = await getSession();
-  if (!session || session.role !== "CHECKER") {
-    throw new Error("Unauthorized");
-  }
-
   try {
+    const session = await getSession();
+    if (!session || session.role !== "CHECKER") {
+      throw new Error("Unauthorized");
+    }
+
     const utcNo = formData.get("utcNo") as string;
+    const inspectorName = formData.get("inspectorName") as string;
     const remarks = formData.get("remarks") as string;
 
     if (!utcNo) {
       throw new Error("Nomor UTC harus diisi");
+    }
+
+    if (!inspectorName) {
+      throw new Error("Nama Inspector harus dipilih");
     }
 
     const existingUTC = await prisma.checkerData.findUnique({
@@ -43,97 +45,59 @@ export async function submitCheckerData(
       throw new Error("Minimal 1 foto harus diupload");
     }
 
-    if (validPhotos.length > 20) {
-      throw new Error("Maksimal 20 foto dapat diupload");
-    }
-
-    const uploadedPhotoUrls: { url: string; filename: string }[] = [];
-
+    const uploadedPhotos = [];
     for (const photo of validPhotos) {
-      try {
-        const fileExt = photo.name.split(".").pop();
-        const fileName = `${Date.now()}-${Math.random()
-          .toString(36)
-          .substring(7)}.${fileExt}`;
-        const filePath = `checker/${fileName}`;
+      const fileExt = photo.name.split(".").pop();
+      const fileName = `${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(7)}.${fileExt}`;
+      const filePath = `checker-photos/${fileName}`;
 
-        const arrayBuffer = await photo.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+      const arrayBuffer = await photo.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
 
-        const { error: uploadError } = await supabaseAdmin.storage
-          .from("container-photos")
-          .upload(filePath, buffer, {
-            contentType: photo.type,
-            upsert: false,
-          });
-
-        if (uploadError) {
-          if (uploadedPhotoUrls.length > 0) {
-            const filePaths = uploadedPhotoUrls.map((p) =>
-              p.url.split("/").slice(-2).join("/")
-            );
-            await supabaseAdmin.storage
-              .from("container-photos")
-              .remove(filePaths);
-          }
-          throw new Error(
-            `Gagal upload foto ${photo.name}: ${uploadError.message}`
-          );
-        }
-
-        const { data: urlData } = supabaseAdmin.storage
-          .from("container-photos")
-          .getPublicUrl(filePath);
-
-        uploadedPhotoUrls.push({
-          url: urlData.publicUrl,
-          filename: photo.name,
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from("container-photos")
+        .upload(filePath, buffer, {
+          contentType: photo.type,
+          cacheControl: "3600",
         });
-      } catch (error) {
-        if (uploadedPhotoUrls.length > 0) {
-          const filePaths = uploadedPhotoUrls.map((p) =>
-            p.url.split("/").slice(-2).join("/")
-          );
-          await supabaseAdmin.storage
-            .from("container-photos")
-            .remove(filePaths);
-        }
-        throw error;
+
+      if (uploadError) {
+        throw new Error(`Gagal upload foto: ${uploadError.message}`);
       }
+
+      const {
+        data: { publicUrl },
+      } = supabaseAdmin.storage.from("container-photos").getPublicUrl(filePath);
+
+      uploadedPhotos.push({
+        url: publicUrl,
+        filename: photo.name,
+      });
     }
 
-    await prisma.$transaction(async (tx) => {
-      const checkerData = await tx.checkerData.create({
-        data: {
-          containerId,
-          userId: session.userId,
-          utcNo,
-          remarks: remarks || null,
+    await prisma.checkerData.create({
+      data: {
+        utcNo,
+        inspectorName,
+        remarks: remarks || null,
+        containerId,
+        userId: session.userId,
+        photos: {
+          create: uploadedPhotos,
         },
-      });
-
-      await tx.photo.createMany({
-        data: uploadedPhotoUrls.map((photo) => ({
-          checkerDataId: checkerData.id,
-          url: photo.url,
-          filename: photo.filename,
-        })),
-      });
+      },
     });
 
     revalidatePath("/checker/dashboard");
-    redirect("/checker/dashboard");
   } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Gagal menyimpan data checker");
+    throw error;
   }
+
+  redirect("/checker/dashboard");
 }
 
-/**
- * Update existing checker data
- */
 export async function updateCheckerData(
   checkerDataId: string,
   formData: FormData
@@ -157,11 +121,16 @@ export async function updateCheckerData(
     }
 
     const utcNo = formData.get("utcNo") as string;
+    const inspectorName = formData.get("inspectorName") as string;
     const remarks = formData.get("remarks") as string;
     const deletedPhotoIds = formData.getAll("deletedPhotoIds") as string[];
 
     if (!utcNo) {
       throw new Error("Nomor UTC harus diisi");
+    }
+
+    if (!inspectorName) {
+      throw new Error("Nama Inspector harus dipilih");
     }
 
     if (utcNo !== checkerData.utcNo) {
@@ -199,7 +168,6 @@ export async function updateCheckerData(
     }
 
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
-
     for (const photo of validPhotos) {
       const fileExt = photo.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()
@@ -236,6 +204,7 @@ export async function updateCheckerData(
         where: { id: checkerDataId },
         data: {
           utcNo,
+          inspectorName,
           remarks: remarks || null,
         },
       });
@@ -283,9 +252,6 @@ export async function updateCheckerData(
   }
 }
 
-/**
- * Delete checker data and all related photos
- */
 export async function deleteCheckerData(checkerDataId: string) {
   const session = await getSession();
   if (!session || session.role !== "CHECKER") {
@@ -317,43 +283,5 @@ export async function deleteCheckerData(checkerDataId: string) {
     return { success: true };
   } catch {
     return { error: "Gagal menghapus data checker" };
-  }
-}
-
-/**
- * Delete single photo from checker data
- */
-export async function deleteCheckerPhoto(photoId: string) {
-  const session = await getSession();
-  if (!session || session.role !== "CHECKER") {
-    return { error: "Unauthorized" };
-  }
-
-  try {
-    const photo = await prisma.photo.findUnique({
-      where: { id: photoId },
-      include: {
-        checkerData: true,
-      },
-    });
-
-    if (!photo || photo.checkerData?.userId !== session.userId) {
-      return { error: "Unauthorized" };
-    }
-
-    const filePath = photo.url.split("/").slice(-2).join("/");
-
-    try {
-      await supabaseAdmin.storage.from("container-photos").remove([filePath]);
-    } catch {}
-
-    await prisma.photo.delete({
-      where: { id: photoId },
-    });
-
-    revalidatePath("/checker/dashboard");
-    return { success: true };
-  } catch {
-    return { error: "Gagal menghapus foto" };
   }
 }

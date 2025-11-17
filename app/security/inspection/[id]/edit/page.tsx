@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/Dashboard";
 import InspectionFormUnified from "@/components/security/InspectionFormUnified";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { getInspectorNamesByRole } from "@/app/actions/inspectorNames";
 
 export const metadata: Metadata = {
   title: "Edit Pemeriksaan | Container Checker",
@@ -33,7 +34,6 @@ interface PageProps {
 
 export default async function EditInspectionPage({ params }: PageProps) {
   const session = await getSession();
-
   if (!session) return null;
 
   const resolvedParams = await params;
@@ -49,6 +49,18 @@ export default async function EditInspectionPage({ params }: PageProps) {
           checklistItem: {
             include: {
               category: true,
+            },
+          },
+          history: {
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              changedAt: "desc",
             },
           },
         },
@@ -70,13 +82,17 @@ export default async function EditInspectionPage({ params }: PageProps) {
     orderBy: { order: "asc" },
   });
 
+  // Fetch inspector names by role
+  const inspectorNames = await getInspectorNamesByRole(session.role);
+
   return (
     <DashboardLayout session={session}>
       <InspectionFormUnified
         mode="edit"
-        categories={categories as unknown as Category[]}
+        categories={categories}
         inspection={inspection}
-        backLink={`/security/dashboard`}
+        userRole={session.role as "SECURITY"}
+        inspectorNames={inspectorNames}
       />
     </DashboardLayout>
   );

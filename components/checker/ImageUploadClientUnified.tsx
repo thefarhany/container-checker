@@ -1,15 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
-
-type UploadMode = "create" | "edit";
-
-interface ExistingPhoto {
-  id: string;
-  url: string;
-  filename: string;
-}
 
 interface PreviewItem {
   id: string;
@@ -17,25 +9,30 @@ interface PreviewItem {
   name: string;
 }
 
+interface Photo {
+  id: string;
+  url: string;
+  filename: string;
+}
+
 interface ImageUploadClientUnifiedProps {
-  mode?: UploadMode;
-  existingPhotos?: ExistingPhoto[];
+  mode: "create" | "edit" | "view";
+  existingPhotos?: Photo[];
+  disabled?: boolean;
 }
 
 export default function ImageUploadClientUnified({
-  mode = "create",
+  mode,
   existingPhotos = [],
+  disabled = false,
 }: ImageUploadClientUnifiedProps) {
   const [previews, setPreviews] = useState<PreviewItem[]>([]);
-  const [files, setFiles] = useState<File[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const isCreateMode = mode === "create";
+  const mainInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []);
 
-    const validFiles = newFiles.filter((file) => {
+    const validFiles = files.filter((file) => {
       const validTypes = ["image/png", "image/jpeg", "image/jpg"];
       const validSize = file.size <= 5 * 1024 * 1024;
 
@@ -52,7 +49,10 @@ export default function ImageUploadClientUnified({
       return true;
     });
 
-    const totalPhotos = previews.length + validFiles.length;
+    if (validFiles.length === 0) return;
+
+    const totalPhotos =
+      previews.length + validFiles.length + existingPhotos.length;
     if (totalPhotos > 10) {
       alert("Maksimal 10 foto");
       return;
@@ -65,123 +65,131 @@ export default function ImageUploadClientUnified({
     }));
 
     setPreviews((prev) => [...prev, ...newPreviews]);
-    setFiles((prev) => [...prev, ...validFiles]);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
-  const removeNewImage = (id: string) => {
+  const removeImage = (index: number) => {
     setPreviews((prev) => {
-      const updated = prev.filter((p) => p.id !== id);
-      const removed = prev.find((p) => p.id === id);
+      const removed = prev[index];
       if (removed) {
         URL.revokeObjectURL(removed.url);
       }
-      return updated;
+      return prev.filter((_, i) => i !== index);
     });
 
-    setFiles((prev) => {
-      const index = previews.findIndex((p) => p.id === id);
-      if (index !== -1) {
-        const updated = [...prev];
-        updated.splice(index, 1);
-        return updated;
-      }
-      return prev;
-    });
+    if (mainInputRef.current) {
+      const dt = new DataTransfer();
+      const currentFiles = Array.from(mainInputRef.current.files || []);
+      currentFiles.forEach((file, i) => {
+        if (i !== index) {
+          dt.items.add(file);
+        }
+      });
+      mainInputRef.current.files = dt.files;
+    }
   };
 
-  useEffect(() => {
-    const form = fileInputRef.current?.form;
-    if (form && files.length > 0) {
-      const dataTransfer = new DataTransfer();
-      files.forEach((file) => {
-        dataTransfer.items.add(file);
-      });
-
-      let hiddenInput = form.querySelector(
-        'input[name="photos"][type="hidden"]'
-      ) as HTMLInputElement | null;
-
-      if (!hiddenInput) {
-        hiddenInput = document.createElement("input");
-        hiddenInput.type = "file";
-        hiddenInput.name = "photos";
-        hiddenInput.multiple = true;
-        hiddenInput.className = "hidden";
-        form.appendChild(hiddenInput);
-      }
-
-      hiddenInput.files = dataTransfer.files;
+  const triggerUpload = () => {
+    if (!disabled) {
+      mainInputRef.current?.click();
     }
-  }, [files]);
+  };
 
-  const totalNewPhotos = previews.length;
+  const totalPhotos = existingPhotos.length + previews.length;
 
   return (
-    <div className="space-y-4">
-      <div className="text-sm text-slate-600">
-        Total: <span className="font-semibold">{totalNewPhotos}</span>
-        /10 foto (Min: 1, Maks: 10)
-      </div>
-
-      <div
-        onClick={() => fileInputRef.current?.click()}
-        className="border-2 border-dashed border-slate-300 rounded-lg p-8 text-center hover:border-blue-500 hover:bg-blue-50 transition-all cursor-pointer group"
-      >
-        <Upload className="w-12 h-12 text-slate-400 mx-auto mb-3 group-hover:text-blue-500 transition" />
-        <p className="text-base font-medium text-slate-700">
-          Klik untuk upload foto
-        </p>
-        <p className="text-sm text-slate-500 mt-1">PNG, JPG, JPEG hingga 5MB</p>
-      </div>
+    <div>
+      <label className="mb-2 block text-sm font-medium text-gray-700">
+        Upload Foto <span className="text-red-500">*</span>
+      </label>
+      <p className="mb-2 text-xs text-gray-500">
+        Total: {totalPhotos}/10 foto (Min: 1, Maks: 10)
+      </p>
 
       <input
-        ref={fileInputRef}
+        ref={mainInputRef}
         type="file"
         name="photos"
         multiple
         accept="image/png,image/jpeg,image/jpg"
         onChange={handleFileChange}
+        disabled={disabled}
         className="hidden"
       />
 
-      {previews.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-slate-700 mb-3">
-            Foto yang akan diupload ({totalNewPhotos})
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {previews.map((preview) => (
+      {mode !== "view" && (
+        <div
+          onClick={triggerUpload}
+          className={`mb-4 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 transition ${
+            disabled
+              ? "border-gray-200 bg-gray-50 cursor-not-allowed"
+              : "border-gray-300 bg-gray-50 hover:border-blue-500 hover:bg-blue-50"
+          }`}
+        >
+          <Upload
+            className={`h-12 w-12 mb-4 ${
+              disabled ? "text-gray-300" : "text-gray-400"
+            }`}
+          />
+          <p
+            className={`text-sm font-medium ${
+              disabled ? "text-gray-400" : "text-gray-600"
+            }`}
+          >
+            {disabled ? "Upload tidak tersedia" : "Klik untuk upload foto"}
+          </p>
+          <p className="mt-1 text-xs text-gray-500">
+            PNG, JPG, JPEG hingga 5MB
+          </p>
+        </div>
+      )}
+
+      {(previews.length > 0 || existingPhotos.length > 0) && (
+        <div className="space-y-4">
+          <h4 className="text-sm font-medium text-gray-700">
+            {mode === "view"
+              ? `Foto Checker (${existingPhotos.length})`
+              : `Foto yang akan diupload (${totalPhotos})`}
+          </h4>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            {existingPhotos.map((photo) => (
+              <div
+                key={photo.id}
+                className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200"
+              >
+                <img
+                  src={photo.url}
+                  alt={photo.filename}
+                  className="h-full w-full object-cover"
+                />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <p className="truncate text-xs text-white">
+                    {photo.filename}
+                  </p>
+                </div>
+              </div>
+            ))}
+            {previews.map((preview, index) => (
               <div
                 key={preview.id}
-                className="relative group rounded-lg overflow-hidden border border-slate-300 bg-slate-50"
+                className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200"
               >
-                <div className="relative w-full h-32 bg-slate-200">
-                  <img
-                    src={preview.url}
-                    alt={preview.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                <div className="absolute inset-0 transition flex items-center justify-center">
+                <img
+                  src={preview.url}
+                  alt={preview.name}
+                  className="h-full w-full object-cover"
+                />
+                {mode !== "view" && (
                   <button
                     type="button"
-                    onClick={() => removeNewImage(preview.id)}
-                    className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg"
+                    onClick={() => removeImage(index)}
+                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition shadow-lg"
                   >
-                    <X className="w-4 h-4" />
+                    <X className="h-4 w-4" />
                   </button>
-                </div>
-
-                <div className="px-2 py-1 bg-white border-t border-slate-300">
-                  <p className="text-xs text-slate-700 truncate">
-                    {preview.name}
-                  </p>
-                  <p className="text-xs text-blue-600 font-medium">⧗ Baru</p>
+                )}
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                  <p className="truncate text-xs text-white">{preview.name}</p>
+                  <span className="text-xs text-green-300">⧗ Baru</span>
                 </div>
               </div>
             ))}
@@ -189,11 +197,11 @@ export default function ImageUploadClientUnified({
         </div>
       )}
 
-      {previews.length === 0 && (
-        <div className="text-center py-8">
-          <p className="text-sm text-slate-500">Belum ada foto yang dipilih</p>
-        </div>
-      )}
+      {previews.length === 0 &&
+        existingPhotos.length === 0 &&
+        mode !== "view" && (
+          <p className="text-sm text-gray-500">Belum ada foto yang dipilih</p>
+        )}
     </div>
   );
 }

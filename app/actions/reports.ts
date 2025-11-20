@@ -10,7 +10,6 @@ export async function getReportData(filters: {
   search?: string;
 }) {
   const session = await getSession();
-
   if (!session || session.role !== "ADMIN") {
     return { error: "Unauthorized" };
   }
@@ -18,18 +17,51 @@ export async function getReportData(filters: {
   try {
     const { status, dateFrom, dateTo, search } = filters;
 
+    // ✅ Query sesuai schema - inspectorName, remarks, utcNo adalah FIELD biasa
     const containers = await prisma.container.findMany({
       include: {
         securityCheck: {
           include: {
-            user: { select: { name: true } },
-            photos: true,
+            user: {
+              select: {
+                name: true,
+              },
+            },
+            photos: {
+              select: {
+                url: true,
+                filename: true,
+              },
+            },
+            responses: {
+              include: {
+                checklistItem: {
+                  include: {
+                    category: true,
+                  },
+                },
+              },
+              orderBy: {
+                checklistItem: {
+                  order: "asc",
+                },
+              },
+            },
           },
         },
         checkerData: {
           include: {
-            user: { select: { name: true } },
-            photos: true,
+            user: {
+              select: {
+                name: true,
+              },
+            },
+            photos: {
+              select: {
+                url: true,
+                filename: true,
+              },
+            },
           },
         },
       },
@@ -38,7 +70,60 @@ export async function getReportData(filters: {
       },
     });
 
-    let filtered = containers;
+    // ✅ Inject history per checklist item
+    const containersWithHistory = await Promise.all(
+      containers.map(async (container) => {
+        if (!container.securityCheck) {
+          return container;
+        }
+
+        // Ambil SEMUA history untuk security check ini
+        const allHistories = await prisma.securityCheckResponseHistory.findMany(
+          {
+            where: {
+              securityCheckId: container.securityCheck.id,
+            },
+            include: {
+              user: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+            orderBy: {
+              changedAt: "desc",
+            },
+          }
+        );
+
+        // Group history by checklistItemId
+        const historyByChecklistItem = new Map();
+        allHistories.forEach((history) => {
+          const existing =
+            historyByChecklistItem.get(history.checklistItemId) || [];
+          existing.push(history);
+          historyByChecklistItem.set(history.checklistItemId, existing);
+        });
+
+        // Inject history ke responses
+        const responsesWithHistory = container.securityCheck.responses.map(
+          (response) => ({
+            ...response,
+            history: historyByChecklistItem.get(response.checklistItemId) || [],
+          })
+        );
+
+        return {
+          ...container,
+          securityCheck: {
+            ...container.securityCheck,
+            responses: responsesWithHistory,
+          },
+        };
+      })
+    );
+
+    let filtered = containersWithHistory;
 
     // Search filter
     if (search) {
@@ -47,7 +132,9 @@ export async function getReportData(filters: {
         (c) =>
           c.containerNo.toLowerCase().includes(searchLower) ||
           c.companyName.toLowerCase().includes(searchLower) ||
-          (c.checkerData?.utcNo || "").toLowerCase().includes(searchLower)
+          (c.checkerData?.utcNo || "").toLowerCase().includes(searchLower) ||
+          c.sealNo.toLowerCase().includes(searchLower) ||
+          c.plateNo.toLowerCase().includes(searchLower)
       );
     }
 

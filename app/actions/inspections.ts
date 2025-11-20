@@ -41,7 +41,6 @@ export async function createInspection(formData: FormData): Promise<void> {
     const existingContainer = await prisma.container.findUnique({
       where: { containerNo: containerData.containerNo },
     });
-
     if (existingContainer) {
       throw new Error(
         `Nomor kontainer "${containerData.containerNo}" sudah digunakan. Silakan gunakan nomor lain.`
@@ -51,7 +50,6 @@ export async function createInspection(formData: FormData): Promise<void> {
     const existingSeal = await prisma.container.findFirst({
       where: { sealNo: containerData.sealNo },
     });
-
     if (existingSeal) {
       throw new Error(
         `Nomor seal "${containerData.sealNo}" sudah digunakan. Silakan gunakan nomor lain.`
@@ -168,6 +166,31 @@ export async function createInspection(formData: FormData): Promise<void> {
         })),
       });
 
+      const createdResponses = await tx.securityCheckResponse.findMany({
+        where: { securityCheckId: securityCheck.id },
+        select: {
+          id: true,
+          checklistItemId: true,
+          checked: true,
+          notes: true,
+        },
+      });
+
+      const historyData = createdResponses.map((response) => ({
+        responseId: response.id,
+        checklistItemId: response.checklistItemId,
+        securityCheckId: securityCheck.id,
+        notes: response.notes,
+        checked: response.checked,
+        changedBy: session.userId,
+      }));
+
+      if (historyData.length > 0) {
+        await tx.securityCheckResponseHistory.createMany({
+          data: historyData,
+        });
+      }
+
       await tx.photo.createMany({
         data: uploadedPhotoUrls.map((photo) => ({
           securityCheckId: securityCheck.id,
@@ -238,7 +261,6 @@ export async function updateInspection(
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
-
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
 
     const remainingPhotoCount =
@@ -307,8 +329,8 @@ export async function updateInspection(
         });
 
         const oldResponses = inspection.responses;
-        const changedItems = [];
 
+        const changedItems = [];
         for (const newResponse of responses) {
           const oldResponse = oldResponses.find(
             (r) => r.checklistItemId === newResponse.checklistItemId
@@ -317,7 +339,6 @@ export async function updateInspection(
           if (oldResponse) {
             const oldNotes = oldResponse.notes || "";
             const newNotes = newResponse.notes || "";
-
             const hasChanged =
               oldResponse.checked !== newResponse.checked ||
               oldNotes !== newNotes;
@@ -351,7 +372,6 @@ export async function updateInspection(
 
         if (changedItems.length > 0) {
           const historyData = [];
-
           for (const item of changedItems) {
             const newResponse = newResponsesCreated.find(
               (r) => r.checklistItemId === item.checklistItemId
@@ -387,9 +407,7 @@ export async function updateInspection(
               await supabaseAdmin.storage
                 .from("container-photos")
                 .remove([filePath]);
-            } catch {
-              // Ignore storage errors
-            }
+            } catch {}
           }
 
           await tx.photo.deleteMany({
@@ -431,7 +449,6 @@ export async function updateInspection(
  */
 export async function deleteInspection(containerId: string) {
   const session = await getSession();
-
   if (!session || (session.role !== "SECURITY" && session.role !== "ADMIN")) {
     return { success: false, error: "Unauthorized" };
   }
@@ -443,7 +460,11 @@ export async function deleteInspection(containerId: string) {
         securityCheck: {
           include: {
             photos: true,
-            responses: true,
+            responses: {
+              include: {
+                history: true,
+              },
+            },
           },
         },
         checkerData: {
@@ -474,7 +495,6 @@ export async function deleteInspection(containerId: string) {
     }
 
     const allPhotoUrls: string[] = [];
-
     if (container.securityCheck?.photos) {
       container.securityCheck.photos.forEach((photo) => {
         const filePath = photo.url.split("/").slice(-2).join("/");
@@ -498,6 +518,54 @@ export async function deleteInspection(containerId: string) {
         } catch (error) {
           console.error("Error deleting photos from storage:", error);
         }
+      }
+
+      if (container.securityCheck) {
+        await tx.securityCheckResponseHistory.deleteMany({
+          where: {
+            securityCheckId: container.securityCheck.id,
+          },
+        });
+      }
+
+      if (container.securityCheck) {
+        await tx.photo.deleteMany({
+          where: {
+            securityCheckId: container.securityCheck.id,
+          },
+        });
+      }
+
+      if (container.checkerData) {
+        await tx.photo.deleteMany({
+          where: {
+            checkerDataId: container.checkerData.id,
+          },
+        });
+      }
+
+      if (container.securityCheck) {
+        await tx.securityCheckResponse.deleteMany({
+          where: {
+            securityCheckId: container.securityCheck.id,
+          },
+        });
+      }
+
+      if (container.securityCheck) {
+        await tx.securityCheck.delete({
+          where: {
+            id: container.securityCheck.id,
+          },
+        });
+      }
+
+      if (container.checkerData) {
+        await tx.checkerData.delete({
+          where: {
+            id: container.checkerData.id,
+          },
+        });
       }
 
       await tx.container.delete({
@@ -552,7 +620,6 @@ export async function deletePhoto(photoId: string) {
     }
 
     const filePath = photo.url.split("/").slice(-2).join("/");
-
     await supabaseAdmin.storage.from("container-photos").remove([filePath]);
 
     await prisma.photo.delete({
@@ -560,7 +627,6 @@ export async function deletePhoto(photoId: string) {
     });
 
     revalidatePath("/security/dashboard");
-
     return { success: true };
   } catch {
     return { error: "Gagal menghapus foto" };

@@ -36,7 +36,7 @@ export default function UserForm({ user }: UserFormProps) {
       }
       router.push("/admin/users");
       router.refresh();
-    } catch (error) {
+    } catch {
       alert("Gagal menyimpan data");
     } finally {
       setIsSubmitting(false);

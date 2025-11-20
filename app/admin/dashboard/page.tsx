@@ -15,7 +15,6 @@ import {
   BarChart3,
 } from "lucide-react";
 import { ElementType } from "react";
-import DeleteContainerButton from "@/components/DeleteContainerButton";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -366,49 +365,33 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                             </div>
                           </td>
 
-                          <td className="hidden lg:table-cell px-6 py-4">
+                          {/* Security Status */}
+                          <td className="px-6 py-4 text-center">
                             {hasSecurity ? (
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                  <span className="text-sm font-medium text-gray-900">
-                                    Selesai
-                                  </span>
-                                </div>
-                                <div className="mt-0.5 text-xs text-gray-500">
-                                  {container.securityCheck?.user?.name}
-                                </div>
-                              </div>
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {container.securityCheck?.inspectorName}
+                              </span>
                             ) : (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="h-4 w-4 text-gray-400" />
-                                <span className="text-sm text-gray-500">
-                                  Belum ada
-                                </span>
-                              </div>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
+                                <Clock className="h-3 w-3" />
+                                Belum ada
+                              </span>
                             )}
                           </td>
 
-                          <td className="hidden lg:table-cell px-6 py-4">
+                          {/* Checker Status */}
+                          <td className="px-6 py-4 text-center">
                             {hasChecker ? (
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                  <span className="text-sm font-medium text-gray-900">
-                                    Selesai
-                                  </span>
-                                </div>
-                                <div className="mt-0.5 text-xs text-gray-500">
-                                  {container.checkerData?.user?.name}
-                                </div>
-                              </div>
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {container.checkerData?.inspectorName}
+                              </span>
                             ) : (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="h-4 w-4 text-gray-400" />
-                                <span className="text-sm text-gray-500">
-                                  Belum ada
-                                </span>
-                              </div>
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
+                                <Clock className="h-3 w-3" />
+                                Belum ada
+                              </span>
                             )}
                           </td>
 
@@ -444,20 +427,14 @@ export default async function AdminDashboardPage({ searchParams }: PageProps) {
                             </div>
                           </td>
 
-                          <td className="px-3 sm:px-6 py-4">
-                            <div className="flex items-center justify-center">
-                              <Link
-                                href={`/admin/containers/${container.id}`}
-                                className="inline-flex items-center gap-1 sm:gap-1.5 rounded-lg bg-purple-600 px-2 sm:px-3 py-1.5 text-xs sm:text-sm font-medium text-white transition-colors hover:bg-purple-700 shadow-sm hover:shadow-md"
-                              >
-                                <Eye className="h-3 w-3 sm:h-4 sm:w-4" />
-                                <span className="hidden sm:inline">Detail</span>
-                              </Link>
-                              <DeleteContainerButton
-                                containerId={container.id}
-                                variant="small"
-                              />
-                            </div>
+                          <td className="px-6 py-4 text-center">
+                            <Link
+                              href={`/admin/containers/${container.id}`}
+                              className="inline-flex items-center gap-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Detail
+                            </Link>
                           </td>
                         </tr>
                       );

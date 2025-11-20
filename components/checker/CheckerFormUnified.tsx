@@ -10,8 +10,6 @@ import {
   CheckCircle2,
   XCircle,
   FileText,
-  User,
-  Calendar,
   Package,
   Shield,
   Camera,
@@ -99,6 +97,7 @@ interface CheckerFormUnifiedProps {
   securityCheck: SecurityCheck;
   checkerData?: CheckerData;
   inspectorNames: InspectorName[];
+  securityInspectorName?: string; // ✅ TAMBAH INI
 }
 
 export default function CheckerFormUnified({
@@ -107,6 +106,7 @@ export default function CheckerFormUnified({
   securityCheck,
   checkerData,
   inspectorNames,
+  securityInspectorName, // ✅ TAMBAH INI
 }: CheckerFormUnifiedProps) {
   const [isPending, startTransition] = useTransition();
   const formRef = useRef<HTMLFormElement>(null);
@@ -175,69 +175,43 @@ export default function CheckerFormUnified({
     }
     acc[categoryId].responses.push(response);
     return acc;
-  }, {} as Record<string, { category: any; responses: typeof securityCheck.responses }>);
+  }, {} as Record<string, { category: { id: string; name: string; description: string | null }; responses: SecurityCheckResponse[] }>);
 
   return (
-    <form
-      ref={formRef}
-      onSubmit={handleSubmit}
-      className="mx-auto max-w-5xl space-y-6 pb-8"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/checker/dashboard"
-            className="rounded-lg border border-gray-300 bg-white p-2 shadow-sm transition-all hover:bg-gray-50 hover:shadow"
-          >
-            <ArrowLeft className="h-5 w-5 text-gray-600" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {mode === "create" && "Pemeriksaan Checker"}
-              {mode === "edit" && "Edit Pemeriksaan"}
-              {mode === "view" && "Detail Pemeriksaan"}
-            </h1>
-            <p className="mt-1 text-sm text-gray-600">
-              {mode === "create" && "Input data pemeriksaan checker"}
-              {mode === "edit" && "Edit data pemeriksaan checker"}
-              {mode === "view" && "Lihat detail pemeriksaan checker"}
-            </p>
-          </div>
-        </div>
+    <div className="max-w-5xl mx-auto p-6">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">
+          {mode === "create" && "Pemeriksaan Checker"}
+          {mode === "edit" && "Edit Pemeriksaan"}
+          {mode === "view" && "Detail Pemeriksaan"}
+        </h1>
+        <p className="text-gray-600">
+          {mode === "create" && "Input data pemeriksaan checker"}
+          {mode === "edit" && "Edit data pemeriksaan checker"}
+          {mode === "view" && "Lihat detail pemeriksaan checker"}
+        </p>
       </div>
 
       {/* Alert - Security Items Not Checked */}
       {!allSecurityChecked && mode === "create" && (
-        <div className="rounded-xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-red-100/50 p-6 shadow-sm">
-          <div className="flex items-start gap-4">
-            <div className="rounded-full bg-red-500 p-2">
-              <AlertTriangle className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-lg font-bold text-red-900">
-                Tidak Dapat Melanjutkan Pemeriksaan
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-red-800">
-                Masih ada{" "}
-                <span className="font-bold">
-                  {uncheckedCount} dari {totalItems} item
-                </span>{" "}
-                yang belum diperiksa atau perlu perhatian dari Security. Checker
-                tidak dapat input No. UTC dan upload gambar sampai semua item
-                diperiksa.
-              </p>
-              <div className="mt-4 flex items-center gap-2">
-                <div className="h-2 flex-1 overflow-hidden rounded-full bg-red-200">
-                  <div
-                    className="h-full bg-red-600 transition-all"
-                    style={{ width: `${(checkedItems / totalItems) * 100}%` }}
-                  />
-                </div>
-                <span className="text-sm font-semibold text-red-900">
-                  {checkedItems}/{totalItems}
-                </span>
-              </div>
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-red-800 mb-1">
+              Tidak Dapat Melanjutkan Pemeriksaan
+            </h3>
+            <p className="text-sm text-red-700 mb-2">
+              Masih ada{" "}
+              <span className="font-bold">
+                {uncheckedCount} dari {totalItems} item
+              </span>{" "}
+              yang belum diperiksa atau perlu perhatian dari Security. Checker
+              tidak dapat input No. UTC dan upload gambar sampai semua item
+              diperiksa.
+            </p>
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 rounded-full text-sm font-medium text-red-800">
+              <XCircle className="h-4 w-4" />
+              {checkedItems}/{totalItems}
             </div>
           </div>
         </div>
@@ -245,327 +219,243 @@ export default function CheckerFormUnified({
 
       {/* Success Progress */}
       {allSecurityChecked && mode === "create" && (
-        <div className="rounded-xl border-2 border-green-200 bg-gradient-to-r from-green-50 to-green-100/50 p-5 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-green-500 p-2">
-              <CheckCircle2 className="h-5 w-5 text-white" />
-            </div>
-            <div>
-              <p className="font-semibold text-green-900">
-                Semua Item Sudah Diperiksa
-              </p>
-              <p className="text-sm text-green-700">
-                Anda dapat melanjutkan ke input data checker
-              </p>
-            </div>
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3">
+          <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-green-800 mb-1">
+              Semua Item Sudah Diperiksa
+            </h3>
+            <p className="text-sm text-green-700">
+              Anda dapat melanjutkan ke input data checker
+            </p>
           </div>
         </div>
       )}
 
       {/* Container Info Card */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <Package className="h-5 w-5 text-blue-600" />
-            <h2 className="text-lg font-bold text-gray-900">
-              Informasi Kontainer
-            </h2>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Package className="h-5 w-5 text-blue-600" />
+          Informasi Kontainer
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-600">Nomor Kontainer</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {container.containerNo}
+            </p>
           </div>
-        </div>
-        <div className="grid grid-cols-1 gap-6 p-6 md:grid-cols-2">
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-blue-100 p-2">
-              <Package className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Nomor Kontainer
-              </p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
-                {container.containerNo}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">Nama Perusahaan</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {container.companyName}
+            </p>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-purple-100 p-2">
-              <FileText className="h-5 w-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Nama Perusahaan
-              </p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
-                {container.companyName}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">Nomor Seal</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {container.sealNo}
+            </p>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-green-100 p-2">
-              <Shield className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Nomor Seal
-              </p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
-                {container.sealNo}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">Nomor Plat</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {container.plateNo}
+            </p>
           </div>
-          <div className="flex items-start gap-3">
-            <div className="rounded-lg bg-orange-100 p-2">
-              <FileText className="h-5 w-5 text-orange-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Nomor Plat
-              </p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
-                {container.plateNo}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">
+              Tanggal Pemeriksaan
+            </p>
+            <p className="text-lg font-semibold text-gray-800">
+              {formatDate(container.inspectionDate)}
+            </p>
           </div>
-          <div className="flex items-start gap-3 md:col-span-2">
-            <div className="rounded-lg bg-indigo-100 p-2">
-              <Calendar className="h-5 w-5 text-indigo-600" />
-            </div>
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                Tanggal Pemeriksaan
-              </p>
-              <p className="mt-1 text-lg font-bold text-gray-900">
-                {formatDate(container.inspectionDate)}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm font-medium text-gray-600">Nama Pemeriksa</p>
+            <p className="text-lg font-semibold text-gray-800">
+              {securityInspectorName || "Unknown"}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Security Check Results */}
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Shield className="h-5 w-5 text-emerald-600" />
-              <h2 className="text-lg font-bold text-gray-900">
-                Hasil Pemeriksaan Security
-              </h2>
-            </div>
-            <div className="flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1">
-              <User className="h-4 w-4 text-emerald-700" />
-              <span className="text-sm font-medium text-emerald-700">
-                {securityCheck.user?.name || "Unknown"}
-              </span>
-            </div>
-          </div>
-        </div>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          <Shield className="h-5 w-5 text-green-600" />
+          Hasil Pemeriksaan Security
+        </h2>
+        <p className="text-sm text-gray-600 mb-4">
+          {securityCheck.user?.name || "Unknown"}
+        </p>
 
-        <div className="space-y-6 p-6">
-          {Object.values(securityByCategory).map((cat, categoryIndex) => (
-            <div key={cat.category.id} className="space-y-4">
-              {/* ✅ PERBAIKAN 1: Tambahkan Nomor Kategori */}
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-white font-bold shadow-sm">
-                  {categoryIndex + 1}
-                </div>
-                <h3 className="text-base font-bold text-gray-900">
+        {Object.values(securityByCategory).map((cat, categoryIndex) => (
+          <div
+            key={cat.category.id}
+            className="mb-6 last:mb-0 pb-6 last:pb-0 border-b last:border-b-0 border-gray-200"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-sm flex-shrink-0">
+                {categoryIndex + 1}
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">
                   {cat.category.name}
                 </h3>
+                {cat.category.description && (
+                  <p className="text-sm text-gray-600">
+                    {cat.category.description}
+                  </p>
+                )}
               </div>
-              {cat.category.description && (
-                <p className="text-sm text-gray-600 pl-11">
-                  {cat.category.description}
-                </p>
-              )}
+            </div>
 
-              <div className="space-y-3 pl-11">
-                {cat.responses.map((response) => {
-                  const itemHistory = (response.history || []).sort(
-                    (a, b) =>
-                      new Date(b.changedAt).getTime() -
-                      new Date(a.changedAt).getTime()
-                  );
+            <div className="space-y-3">
+              {cat.responses.map((response) => {
+                const itemHistory = (response.history || []).sort(
+                  (a, b) =>
+                    new Date(b.changedAt).getTime() -
+                    new Date(a.changedAt).getTime()
+                );
 
-                  return (
-                    <div
-                      key={response.id}
-                      className="group overflow-hidden rounded-lg border-2 transition-all hover:border-gray-300 hover:shadow-md"
-                      style={{
-                        borderColor: response.checked ? "#d1fae5" : "#fee2e2",
-                        backgroundColor: response.checked
-                          ? "#f0fdf4"
-                          : "#fef2f2",
-                      }}
-                    >
-                      <div className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div
-                            className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full shadow-sm ${
-                              response.checked
-                                ? "bg-green-500 text-white"
-                                : "bg-red-500 text-white"
-                            }`}
-                          >
-                            {response.checked ? (
-                              <CheckCircle2 className="h-5 w-5" />
-                            ) : (
-                              <XCircle className="h-5 w-5" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900">
-                              {response.checklistItem.itemText}
+                return (
+                  <div
+                    key={response.id}
+                    className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex-shrink-0 mt-1">
+                        {response.checked ? (
+                          <CheckCircle2 className="h-5 w-5 text-green-600" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-600" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-800">
+                          {response.checklistItem.itemText}
+                        </p>
+                        {response.checklistItem.description && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {response.checklistItem.description}
+                          </p>
+                        )}
+                        {response.notes && (
+                          <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded">
+                            <p className="text-xs font-semibold text-blue-800 mb-1">
+                              Catatan Security
                             </p>
-                            {response.checklistItem.description && (
-                              <p className="mt-1 text-sm text-gray-600">
-                                {response.checklistItem.description}
-                              </p>
-                            )}
-
-                            {response.notes && (
-                              <div className="mt-3 rounded-lg border border-blue-200 bg-blue-50 p-3">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-blue-900">
-                                  Catatan Security
-                                </p>
-                                <p className="mt-1 text-sm text-blue-800">
-                                  {response.notes}
-                                </p>
-                              </div>
-                            )}
-
-                            {itemHistory.length > 0 && (
-                              <div className="mt-4 rounded-lg border border-gray-200 bg-white p-4">
-                                <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
-                                  <History className="h-4 w-4 text-gray-500" />
-                                  <span>Riwayat Perubahan</span>
-                                  <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700">
-                                    {itemHistory.length}
-                                  </span>
-                                </div>
-                                <div className="space-y-2">
-                                  {itemHistory.map((hist, idx) => (
-                                    <div
-                                      key={hist.id}
-                                      className="rounded-md border border-gray-200 bg-gray-50 p-3"
-                                    >
-                                      <div className="mb-2 flex items-center justify-between">
-                                        <span className="text-sm font-bold text-gray-900">
-                                          Perubahan #{itemHistory.length - idx}
-                                        </span>
-                                        <span className="text-xs text-gray-500">
-                                          {formatHistoryDate(hist.changedAt)}
-                                        </span>
-                                      </div>
-                                      <div className="flex flex-wrap items-center gap-2 text-xs">
-                                        <span
-                                          className={`rounded-full px-2.5 py-1 font-semibold ${
-                                            hist.checked
-                                              ? "bg-green-100 text-green-800"
-                                              : "bg-red-100 text-red-800"
-                                          }`}
-                                        >
-                                          {hist.checked
-                                            ? "✓ Diperiksa"
-                                            : "✕ Belum Diperiksa"}
-                                        </span>
-                                        <span className="text-gray-600">
-                                          oleh {hist.user.name}
-                                        </span>
-                                      </div>
-                                      {hist.notes && (
-                                        <p className="mt-2 text-sm text-gray-700 italic">
-                                          "{hist.notes}"
-                                        </p>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                            <p className="text-sm text-blue-900">
+                              {response.notes}
+                            </p>
                           </div>
-                          <span
-                            className={`flex-shrink-0 rounded-full px-3 py-1 text-xs font-bold shadow-sm ${
-                              response.checked
-                                ? "bg-green-500 text-white"
-                                : "bg-red-500 text-white"
-                            }`}
-                          >
-                            {response.checked ? "OK" : "Perlu Perhatian"}
-                          </span>
-                        </div>
+                        )}
+
+                        {/* ✅ HISTORY SECTION - GANTI hist.user.name dengan securityInspectorName */}
+                        {itemHistory.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
+                              <History className="h-3 w-3" />
+                              Riwayat Perubahan
+                              <span className="ml-auto bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-[10px]">
+                                {itemHistory.length}
+                              </span>
+                            </p>
+                            <div className="space-y-2">
+                              {itemHistory.map((hist, idx) => (
+                                <div
+                                  key={hist.id}
+                                  className="text-xs bg-white p-2 rounded border border-gray-200"
+                                >
+                                  <div className="flex items-start justify-between gap-2 mb-1">
+                                    <span className="font-medium text-gray-700">
+                                      Perubahan #{itemHistory.length - idx}
+                                    </span>
+                                    <span className="text-gray-500 text-[10px]">
+                                      {formatHistoryDate(hist.changedAt)}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span
+                                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                        hist.checked
+                                          ? "bg-green-100 text-green-700"
+                                          : "bg-red-100 text-red-700"
+                                      }`}
+                                    >
+                                      {hist.checked
+                                        ? "✓ Diperiksa"
+                                        : "✕ Belum Diperiksa"}
+                                    </span>
+                                    <span className="text-gray-600 text-[10px]">
+                                      oleh {securityInspectorName || "Unknown"}
+                                      {/* ✅ GANTI DARI hist.user.name KE securityInspectorName */}
+                                    </span>
+                                  </div>
+                                  {hist.notes && (
+                                    <p className="text-gray-600 text-[11px] italic">
+                                      &quot;{hist.notes}&quot;
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-shrink-0">
+                        <span
+                          className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
+                            response.checked
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {response.checked ? "OK" : "Perlu Perhatian"}
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
 
         {securityCheck.remarks && (
-          <div className="border-t border-gray-200 bg-amber-50 px-6 py-4">
-            <div className="flex items-start gap-3">
-              <FileText className="h-5 w-5 flex-shrink-0 text-amber-600" />
-              <div>
-                <p className="text-sm font-semibold text-amber-900">
-                  Catatan Umum Security:
-                </p>
-                <p className="mt-1 text-sm text-amber-800">
-                  {securityCheck.remarks}
-                </p>
-              </div>
-            </div>
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm font-semibold text-blue-800 mb-1">
+              Catatan Umum Security:
+            </p>
+            <p className="text-sm text-blue-900">{securityCheck.remarks}</p>
           </div>
         )}
 
-        {/* ✅ PERBAIKAN 2: Foto Bisa Diklik untuk Buka Tab Baru */}
         {securityCheck.photos && securityCheck.photos.length > 0 && (
-          <div className="border-t border-gray-200 bg-gray-50 px-6 py-5">
-            <div className="mb-4 flex items-center gap-2">
-              <Camera className="h-5 w-5 text-gray-600" />
-              <h3 className="text-sm font-bold text-gray-900">
-                Foto Pemeriksaan Security
-              </h3>
-              <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700">
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Camera className="h-4 w-4" />
+              Foto Pemeriksaan Security
+              <span className="ml-auto bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
                 {securityCheck.photos.length}
               </span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            </h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {securityCheck.photos.map((photo, index) => (
                 <a
                   key={photo.id}
                   href={photo.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group relative aspect-square overflow-hidden rounded-lg border-2 border-gray-200 bg-white shadow-sm transition-all hover:border-blue-400 hover:shadow-lg cursor-pointer"
+                  className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-500 transition-all cursor-pointer"
                 >
                   <img
                     src={photo.url}
-                    alt={photo.filename}
-                    className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    alt={`Security Photo ${index + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
-                  {/* Overlay saat hover */}
-                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-white rounded-full p-2">
-                        <svg
-                          className="h-5 w-5 text-blue-600"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Nomor foto di pojok kiri atas */}
-                  <div className="absolute top-2 left-2 bg-black bg-opacity-70 text-white text-xs font-bold px-2 py-1 rounded">
+                  <div className="absolute top-2 left-2 bg-blue-600 text-white px-2 py-1 rounded text-xs font-bold">
                     {index + 1}
                   </div>
                 </a>
@@ -577,222 +467,172 @@ export default function CheckerFormUnified({
 
       {/* Checker Data - View Mode */}
       {mode === "view" && checkerData && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-indigo-600" />
-              <h2 className="text-lg font-bold text-gray-900">
-                Data Pemeriksaan Checker
-              </h2>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5 text-purple-600" />
+            Data Pemeriksaan Checker
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <p className="text-sm font-medium text-gray-600">
+                Nama Inspector
+              </p>
+              <p className="text-lg font-semibold text-gray-800">
+                {checkerData.inspectorName}
+              </p>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-600">No. UTC</p>
+              <p className="text-lg font-semibold text-gray-800">
+                {checkerData.utcNo}
+              </p>
             </div>
           </div>
-          <div className="space-y-5 p-6">
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-purple-100 p-2">
-                <User className="h-5 w-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  Nama Inspector
-                </p>
-                <p className="mt-1 text-base font-bold text-gray-900">
-                  {checkerData.inspectorName}
-                </p>
+          {checkerData.remarks && (
+            <div className="mb-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+              <p className="text-sm font-semibold text-purple-800 mb-1">
+                Catatan
+              </p>
+              <p className="text-sm text-purple-900">{checkerData.remarks}</p>
+            </div>
+          )}
+          {checkerData.photos && checkerData.photos.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Foto Checker
+                <span className="ml-auto bg-gray-200 text-gray-700 px-2 py-1 rounded-full text-xs">
+                  {checkerData.photos.length}
+                </span>
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {checkerData.photos.map((photo, index) => (
+                  <a
+                    key={photo.id}
+                    href={photo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-500 transition-all cursor-pointer"
+                  >
+                    <img
+                      src={photo.url}
+                      alt={`Checker Photo ${index + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 left-2 bg-purple-600 text-white px-2 py-1 rounded text-xs font-bold">
+                      {index + 1}
+                    </div>
+                  </a>
+                ))}
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <div className="rounded-lg bg-blue-100 p-2">
-                <FileText className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                  No. UTC
-                </p>
-                <p className="mt-1 text-base font-bold text-gray-900">
-                  {checkerData.utcNo}
-                </p>
-              </div>
-            </div>
-            {checkerData.remarks && (
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-amber-100 p-2">
-                  <FileText className="h-5 w-5 text-amber-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
-                    Catatan
-                  </p>
-                  <p className="mt-1 text-base text-gray-900">
-                    {checkerData.remarks}
-                  </p>
-                </div>
-              </div>
-            )}
-            {checkerData.photos && checkerData.photos.length > 0 && (
-              <div>
-                <div className="mb-3 flex items-center gap-2">
-                  <Camera className="h-5 w-5 text-gray-600" />
-                  <p className="text-sm font-bold text-gray-900">
-                    Foto Checker
-                  </p>
-                  <span className="rounded-full bg-gray-200 px-2 py-0.5 text-xs font-bold text-gray-700">
-                    {checkerData.photos.length}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  {checkerData.photos.map((photo, index) => (
-                    <a
-                      key={photo.id}
-                      href={photo.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative aspect-square overflow-hidden rounded-lg border-2 border-gray-200 shadow-sm hover:border-blue-400 hover:shadow-lg cursor-pointer"
-                    >
-                      <img
-                        src={photo.url}
-                        alt={photo.filename}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                      />
-                      {/* Overlay saat hover */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <div className="bg-white rounded-full p-2">
-                            <svg
-                              className="h-5 w-5 text-blue-600"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Nomor foto di pojok kiri atas */}
-                      <div className="absolute top-2 left-2 bg-black/30 text-white text-xs font-bold px-2 py-1 rounded">
-                        {index + 1}
-                      </div>
-                    </a>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       )}
 
       {/* Checker Data Form - Create/Edit Mode */}
       {mode !== "view" && (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <div className="border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50 px-6 py-4">
-            <div className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-indigo-600" />
-              <h2 className="text-lg font-bold text-gray-900">
-                Data Pemeriksaan Checker
-              </h2>
-            </div>
-          </div>
-          <div className="space-y-5 p-6">
-            <div>
-              <label className="mb-2 block text-sm font-bold text-gray-700">
-                Nama Inspector <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="inspectorName"
-                defaultValue={checkerData?.inspectorName}
-                disabled={isPending}
-                required
-                className="w-full rounded-lg text-black border-2 border-gray-300 px-4 py-3 font-medium shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
-              >
-                <option value="">Pilih Inspector</option>
-                {inspectorNames.map((inspector) => (
-                  <option key={inspector.id} value={inspector.name}>
-                    {inspector.name}
-                  </option>
-                ))}
-              </select>
+        <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+              <FileText className="h-5 w-5 text-purple-600" />
+              Data Pemeriksaan Checker
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Inspector *
+                </label>
+                <select
+                  name="inspectorName"
+                  defaultValue={checkerData?.inspectorName || ""}
+                  required
+                  disabled={!allSecurityChecked}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-black"
+                >
+                  <option value="">Pilih Inspector</option>
+                  {inspectorNames.map((inspector) => (
+                    <option key={inspector.id} value={inspector.name}>
+                      {inspector.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  No. UTC *
+                </label>
+                <input
+                  type="text"
+                  name="utcNo"
+                  defaultValue={checkerData?.utcNo || ""}
+                  required
+                  disabled={!allSecurityChecked}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 disabled:bg-gray-100 disabled:cursor-not-allowed text-black"
+                  placeholder="Masukkan No. UTC"
+                />
+                {!allSecurityChecked && (
+                  <p className="mt-1 text-xs text-red-600">
+                    Input tidak dapat diisi karena ada item Security yang belum
+                    diperiksa
+                  </p>
+                )}
+              </div>
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-bold text-gray-700">
-                No. UTC <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="utcNo"
-                defaultValue={checkerData?.utcNo}
-                disabled={!allSecurityChecked || isPending}
-                required
-                className="w-full rounded-lg text-black border-2 border-gray-300 px-4 py-3 font-medium shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-gray-100"
-                placeholder="Masukkan nomor UTC"
-              />
-              {!allSecurityChecked && (
-                <p className="mt-2 flex items-center gap-2 text-xs text-red-600">
-                  <AlertTriangle className="h-3 w-3" />
-                  Input tidak dapat diisi karena ada item Security yang belum
-                  diperiksa
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-bold text-gray-700">
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Catatan
               </label>
               <textarea
                 name="remarks"
                 defaultValue={checkerData?.remarks || ""}
-                disabled={isPending}
-                rows={4}
-                className="w-full rounded-lg text-black border-2 border-gray-300 px-4 py-3 font-medium shadow-sm transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:bg-gray-100"
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-black"
                 placeholder="Catatan tambahan (opsional)"
               />
             </div>
 
-            <ImageUploadClientUnified
-              mode={mode}
-              existingPhotos={checkerData?.photos || []}
-              disabled={!allSecurityChecked}
-            />
-
-            {!allSecurityChecked && (
-              <p className="flex items-center gap-2 text-xs text-red-600">
-                <AlertTriangle className="h-3 w-3" />
-                Upload gambar tidak dapat dilakukan karena ada item Security
-                yang belum diperiksa
-              </p>
-            )}
+            <div>
+              <ImageUploadClientUnified
+                mode={mode}
+                existingPhotos={checkerData?.photos || []}
+                disabled={!allSecurityChecked}
+              />
+              {!allSecurityChecked && (
+                <p className="mt-2 text-xs text-red-600">
+                  Upload gambar tidak dapat dilakukan karena ada item Security
+                  yang belum diperiksa
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Action Buttons */}
-      {mode !== "view" && (
-        <div className="flex items-center justify-end gap-3 pt-2">
-          <Link
-            href="/checker/dashboard"
-            className="rounded-lg border-2 border-gray-300 bg-white px-6 py-2.5 font-bold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow"
-          >
-            Batal
-          </Link>
-          <button
-            type="submit"
-            disabled={isPending || !allSecurityChecked}
-            className="rounded-lg bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-2.5 font-bold text-white shadow-md transition-all hover:from-blue-700 hover:to-blue-800 hover:shadow-lg disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500"
-          >
-            {isPending
-              ? "Menyimpan..."
-              : mode === "edit"
-              ? "Update Data"
-              : "Simpan Data"}
-          </button>
-        </div>
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between gap-4">
+            <Link
+              href="/checker/dashboard"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Batal
+            </Link>
+            <button
+              type="submit"
+              disabled={isPending || !allSecurityChecked}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors font-medium"
+            >
+              {isPending
+                ? "Menyimpan..."
+                : mode === "edit"
+                ? "Update Data"
+                : "Simpan Data"}
+            </button>
+          </div>
+        </form>
       )}
-    </form>
+    </div>
   );
 }

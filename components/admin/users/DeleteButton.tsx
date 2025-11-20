@@ -24,7 +24,7 @@ export default function DeleteButton({
       formData.append("id", id);
       await deleteInspectorName(formData);
       router.refresh();
-    } catch (error) {
+    } catch {
       alert("Gagal menghapus user");
     } finally {
       setIsDeleting(false);

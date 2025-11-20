@@ -24,7 +24,6 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   }
 
   const resolvedParams = await params;
-
   const container = await prisma.container.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -72,17 +71,17 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   if (!container.securityCheck) {
     return (
       <DashboardLayout session={session}>
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center gap-2 text-amber-800">
-            <span className="text-2xl">⚠️</span>
-            <h3 className="font-semibold">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center max-w-md p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="text-yellow-600 text-5xl mb-4">⚠️</div>
+            <h2 className="text-xl font-bold text-gray-800 mb-2">
               Kontainer Belum Diperiksa Security
-            </h3>
+            </h2>
+            <p className="text-gray-600">
+              Kontainer harus diperiksa oleh Security terlebih dahulu sebelum
+              Checker melakukan pemeriksaan.
+            </p>
           </div>
-          <p className="mt-2 text-sm text-amber-700">
-            Kontainer harus diperiksa oleh Security terlebih dahulu sebelum
-            Checker melakukan pemeriksaan.
-          </p>
         </div>
       </DashboardLayout>
     );
@@ -104,7 +103,7 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
     },
   });
 
-  const historyByChecklistItem = new Map<string, typeof allHistories>();
+  const historyByChecklistItem = new Map();
   allHistories.forEach((history) => {
     const existing = historyByChecklistItem.get(history.checklistItemId) || [];
     existing.push(history);
@@ -132,6 +131,7 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
           }}
           checkerData={container.checkerData}
           inspectorNames={inspectorNames}
+          securityInspectorName={container.securityCheck.inspectorName}
         />
       </DashboardLayout>
     );
@@ -147,6 +147,7 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
           responses: responsesWithHistory,
         }}
         inspectorNames={inspectorNames}
+        securityInspectorName={container.securityCheck.inspectorName}
       />
     </DashboardLayout>
   );

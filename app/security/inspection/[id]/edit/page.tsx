@@ -11,21 +11,6 @@ export const metadata: Metadata = {
   description: "Dashboard pemeriksaan keamanan kontainer",
 };
 
-interface ChecklistItem {
-  id: string;
-  itemText: string;
-  description: string | null;
-  order: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  description: string | null;
-  order: number;
-  items: ChecklistItem[];
-}
-
 interface PageProps {
   params: Promise<{
     id: string;

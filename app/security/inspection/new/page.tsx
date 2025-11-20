@@ -10,21 +10,6 @@ export const metadata: Metadata = {
   description: "Dashboard pemeriksaan keamanan kontainer",
 };
 
-interface ChecklistItem {
-  id: string;
-  itemText: string;
-  description: string | null;
-  order: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  description: string | null;
-  order: number;
-  items: ChecklistItem[];
-}
-
 export default async function NewInspectionPage() {
   const session = await getSession();
   if (!session) return null;

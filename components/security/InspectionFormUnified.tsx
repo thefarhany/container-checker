@@ -2,15 +2,10 @@
 
 import { useTransition, useState, useRef } from "react";
 import { toast } from "sonner";
-import {
-  createInspection,
-  updateInspection,
-  deleteInspection,
-} from "@/app/actions/inspections";
+import { createInspection, updateInspection } from "@/app/actions/inspections";
 import { ArrowLeft, Check, History, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import ImageUploadClientUnified from "@/components/security/ImageUploadClientUnified";
-import DeleteContainerButton from "../DeleteContainerButton";
 
 type FormMode = "create" | "edit" | "view";
 
@@ -587,7 +582,7 @@ export default function InspectionFormUnified({
                                             </span>
                                           )}
                                           <span className="text-slate-600">
-                                            oleh {hist.user.name}
+                                            oleh {inspection?.inspectorName}
                                           </span>
                                         </div>
                                         {hist.notes && (

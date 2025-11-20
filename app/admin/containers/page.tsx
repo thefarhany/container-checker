@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import DashboardLayout from "@/components/Dashboard";
 import Link from "next/link";
 import {
-  Package,
   CheckCircle2,
   Clock,
   Building2,
@@ -15,6 +14,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { Metadata } from "next";
+import DeleteContainerButton from "@/components/DeleteContainerButton";
 
 export const metadata: Metadata = {
   title: "Semua Container | Container Checker",
@@ -252,152 +252,137 @@ export default async function AdminContainersPage({ searchParams }: PageProps) {
               </div>
             </div>
 
+            {/* Table Container - Enhanced Responsive */}
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b bg-gray-50/50">
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       No. Kontainer
                     </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       No. UTC
                     </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Perusahaan
                     </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Security
                     </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Checker
                     </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Tanggal
                     </th>
-                    <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">
+                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">
                       Aksi
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {containers.length > 0 ? (
-                    containers.map((container) => {
-                      const hasSecurity = !!container.securityCheck;
-                      const hasChecker = !!container.checkerData;
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {containers.map((container) => {
+                    const hasSecurity = container.securityCheck !== null;
+                    const hasChecker = container.checkerData !== null;
 
-                      return (
-                        <tr
-                          key={container.id}
-                          className="transition-colors hover:bg-gray-50"
-                        >
-                          {/* Container Info */}
-                          <td className="px-6 py-4">
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {container.containerNo}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                Segel: {container.sealNo}
-                              </div>
-                            </div>
-                          </td>
+                    return (
+                      <tr
+                        key={container.id}
+                        className="hover:bg-gray-50 transition-colors"
+                      >
+                        {/* No. Kontainer - Fixed width with ellipsis */}
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {container.containerNo}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            Segel: {container.sealNo}
+                          </div>
+                        </td>
 
-                          {/* UTC Number */}
-                          <td className="px-6 py-4">
-                            {hasChecker ? (
-                              <span className="font-medium text-gray-900">
-                                {container.checkerData?.utcNo}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-gray-400">-</span>
-                            )}
-                          </td>
+                        {/* UTC Number */}
+                        <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {hasChecker ? (
+                            <span className="font-medium">
+                              {container.checkerData?.utcNo}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">-</span>
+                          )}
+                        </td>
 
-                          {/* Company */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2">
-                              <Building2 className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm text-gray-900">
-                                {container.companyName}
-                              </span>
-                            </div>
-                          </td>
+                        {/* Company */}
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span className="text-sm text-gray-900 line-clamp-2">
+                              {container.companyName}
+                            </span>
+                          </div>
+                        </td>
 
-                          {/* Security Status */}
-                          <td className="px-6 py-4">
-                            {hasSecurity ? (
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                  <span className="text-sm font-medium text-gray-900">
-                                    Selesai
-                                  </span>
-                                </div>
-                                <div className="mt-0.5 text-xs text-gray-500">
-                                  {container.securityCheck?.user?.name}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="h-4 w-4 text-gray-400" />
-                                <span className="text-sm text-gray-500">
-                                  Belum ada
-                                </span>
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Checker Status */}
-                          <td className="px-6 py-4">
-                            {hasChecker ? (
-                              <div>
-                                <div className="flex items-center gap-1.5">
-                                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                  <span className="text-sm font-medium text-gray-900">
-                                    Selesai
-                                  </span>
-                                </div>
-                                <div className="mt-0.5 text-xs text-gray-500">
-                                  {container.checkerData?.user?.name}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-1.5">
-                                <Clock className="h-4 w-4 text-gray-400" />
-                                <span className="text-sm text-gray-500">
-                                  Belum ada
-                                </span>
-                              </div>
-                            )}
-                          </td>
-
-                          {/* Overall Status */}
-                          <td className="px-6 py-4">
-                            {hasSecurity && hasChecker ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                        {/* Security Status */}
+                        <td className="px-4 py-4 text-center">
+                          {hasSecurity ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
                                 <CheckCircle2 className="h-3.5 w-3.5" />
-                                Selesai
+                                {container.securityCheck?.inspectorName}
                               </span>
-                            ) : hasSecurity ? (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">
-                                <Clock className="h-3.5 w-3.5" />
-                                Pending Checker
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800">
-                                <Clock className="h-3.5 w-3.5" />
-                                Pending Security
-                              </span>
-                            )}
-                          </td>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
+                              <Clock className="h-3 w-3" />
+                              Belum
+                            </span>
+                          )}
+                        </td>
 
-                          {/* Date */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Calendar className="h-4 w-4 text-gray-400" />
+                        {/* Checker Status */}
+                        <td className="px-4 py-4 text-center">
+                          {hasChecker ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 whitespace-nowrap">
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                {container.checkerData?.inspectorName}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 whitespace-nowrap">
+                              <Clock className="h-3 w-3" />
+                              Belum
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Overall Status */}
+                        <td className="px-4 py-4 text-center">
+                          {hasSecurity && hasChecker ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 whitespace-nowrap">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              Selesai
+                            </span>
+                          ) : hasSecurity || hasChecker ? (
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 whitespace-nowrap">
+                              <Clock className="h-3.5 w-3.5" />
+                              Pending
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 whitespace-nowrap">
+                              <Clock className="h-3.5 w-3.5" />
+                              Belum
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Date */}
+                        <td className="px-4 py-4 whitespace-nowrap text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-sm text-gray-900">
+                            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <span>
                               {new Date(
                                 container.inspectionDate
                               ).toLocaleDateString("id-ID", {
@@ -405,51 +390,26 @@ export default async function AdminContainersPage({ searchParams }: PageProps) {
                                 month: "short",
                                 year: "numeric",
                               })}
-                            </div>
-                          </td>
+                            </span>
+                          </div>
+                        </td>
 
-                          {/* Actions */}
-                          <td className="px-6 py-4">
-                            <div className="flex items-center justify-center">
-                              <Link
-                                href={`/admin/containers/${container.id}`}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-purple-700"
-                              >
-                                <Eye className="h-4 w-4" />
-                                Detail
-                              </Link>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <Package className="h-12 w-12 text-gray-300" />
-                          <p className="text-sm font-medium text-gray-900">
-                            {hasActiveFilter
-                              ? "Tidak ada kontainer yang sesuai dengan filter"
-                              : "Belum ada data kontainer"}
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            {hasActiveFilter
-                              ? "Coba ubah filter pencarian"
-                              : "Data kontainer akan muncul di sini setelah Security melakukan pemeriksaan"}
-                          </p>
-                          {hasActiveFilter && (
+                        {/* Actions */}
+                        <td className="px-4 py-4">
+                          <div className="flex justify-center gap-2">
                             <Link
-                              href="/admin/containers"
-                              className="text-sm text-purple-600 hover:text-purple-700"
+                              href={`/admin/containers/${container.id}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs font-medium whitespace-nowrap"
                             >
-                              Reset Filter
+                              <Eye className="h-3.5 w-3.5" />
+                              Detail
                             </Link>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
+                            <DeleteContainerButton containerId={container.id} />
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

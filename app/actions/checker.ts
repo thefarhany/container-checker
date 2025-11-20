@@ -9,13 +9,13 @@ import { revalidatePath } from "next/cache";
 export async function submitCheckerData(
   containerId: string,
   formData: FormData
-): Promise<void> {
-  try {
-    const session = await getSession();
-    if (!session || session.role !== "CHECKER") {
-      throw new Error("Unauthorized");
-    }
+): Promise<{ success: boolean; error?: string }> {
+  const session = await getSession();
+  if (!session || session.role !== "CHECKER") {
+    throw new Error("Unauthorized");
+  }
 
+  try {
     const utcNo = formData.get("utcNo") as string;
     const inspectorName = formData.get("inspectorName") as string;
     const remarks = formData.get("remarks") as string;
@@ -90,12 +90,16 @@ export async function submitCheckerData(
       },
     });
 
+    revalidatePath("/checker");
     revalidatePath("/checker/dashboard");
-  } catch (error) {
-    throw error;
-  }
 
-  redirect("/checker/dashboard");
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Terjadi kesalahan",
+    };
+  }
 }
 
 export async function updateCheckerData(
@@ -140,7 +144,6 @@ export async function updateCheckerData(
           id: { not: checkerDataId },
         },
       });
-
       if (existingUTC) {
         throw new Error(
           `No. UTC "${utcNo}" sudah digunakan. No. UTC Tidak Boleh Sama!`
@@ -168,6 +171,7 @@ export async function updateCheckerData(
     }
 
     const uploadedPhotoUrls: { url: string; filename: string }[] = [];
+
     for (const photo of validPhotos) {
       const fileExt = photo.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random()
@@ -242,14 +246,11 @@ export async function updateCheckerData(
     });
 
     revalidatePath("/checker/dashboard");
-    revalidatePath(`/checker/detail/${checkerData.containerId}`);
-    redirect("/checker/dashboard");
   } catch (error) {
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Gagal mengupdate data checker");
+    throw error;
   }
+
+  redirect("/checker/dashboard");
 }
 
 export async function deleteCheckerData(checkerDataId: string) {

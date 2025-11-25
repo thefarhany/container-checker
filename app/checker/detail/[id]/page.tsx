@@ -4,6 +4,7 @@ import DashboardLayout from "@/components/Dashboard";
 import CheckerFormUnified from "@/components/checker/CheckerFormUnified";
 import { notFound, redirect } from "next/navigation";
 import { Metadata } from "next";
+import { getInspectorNamesByRole } from "@/app/actions/inspectorNames";
 
 export const metadata: Metadata = {
   title: "Detail Container | Container Checker",
@@ -23,6 +24,7 @@ export default async function ViewCheckerDetailPage({ params }: PageProps) {
   }
 
   const resolvedParams = await params;
+
   const container = await prisma.container.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -37,6 +39,11 @@ export default async function ViewCheckerDetailPage({ params }: PageProps) {
           responses: {
             include: {
               checklistItem: {
+                include: {
+                  category: true,
+                },
+              },
+              vehicleInspectionItem: {
                 include: {
                   category: true,
                 },
@@ -67,7 +74,6 @@ export default async function ViewCheckerDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // ✅ Fetch history (SAMA seperti /check/[id])
   const allHistories = await prisma.securityCheckResponseHistory.findMany({
     where: {
       securityCheckId: container.securityCheck.id,
@@ -85,18 +91,34 @@ export default async function ViewCheckerDetailPage({ params }: PageProps) {
   });
 
   const historyByChecklistItem = new Map();
+  const historyByVehicleItem = new Map();
+
   allHistories.forEach((history) => {
-    const existing = historyByChecklistItem.get(history.checklistItemId) || [];
-    existing.push(history);
-    historyByChecklistItem.set(history.checklistItemId, existing);
+    if (history.checklistItemId) {
+      const existing =
+        historyByChecklistItem.get(history.checklistItemId) || [];
+      existing.push(history);
+      historyByChecklistItem.set(history.checklistItemId, existing);
+    }
+
+    if (history.vehicleInspectionItemId) {
+      const existing =
+        historyByVehicleItem.get(history.vehicleInspectionItemId) || [];
+      existing.push(history);
+      historyByVehicleItem.set(history.vehicleInspectionItemId, existing);
+    }
   });
 
   const responsesWithHistory = container.securityCheck.responses.map(
     (response) => ({
       ...response,
-      history: historyByChecklistItem.get(response.checklistItemId) || [],
+      history: response.checklistItemId
+        ? historyByChecklistItem.get(response.checklistItemId) || []
+        : historyByVehicleItem.get(response.vehicleInspectionItemId) || [],
     })
-  );
+  ) as any;
+
+  const inspectorNames = await getInspectorNamesByRole("CHECKER");
 
   return (
     <DashboardLayout session={session}>
@@ -108,8 +130,7 @@ export default async function ViewCheckerDetailPage({ params }: PageProps) {
           responses: responsesWithHistory,
         }}
         checkerData={container.checkerData || undefined}
-        inspectorNames={[]}
-        securityInspectorName={container.securityCheck.inspectorName}
+        inspectorNames={inspectorNames}
       />
     </DashboardLayout>
   );

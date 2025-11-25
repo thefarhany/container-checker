@@ -9,15 +9,15 @@ datasource db {
 }
 
 model User {
-  id             String          @id @default(uuid())
-  email          String          @unique
-  name           String
-  role           UserRole
-  password       String
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  checkerData    CheckerData[]
-  securityChecks SecurityCheck[]
+  id              String                           @id @default(uuid())
+  email           String                           @unique
+  name            String
+  role            UserRole
+  password        String
+  createdAt       DateTime                         @default(now())
+  updatedAt       DateTime                         @updatedAt
+  checkerData     CheckerData[]
+  securityChecks  SecurityCheck[]
   responseHistory SecurityCheckResponseHistory[]
 
   @@map("users")
@@ -62,15 +62,15 @@ model ChecklistCategory {
 }
 
 model ChecklistItem {
-  id          String                  @id @default(uuid())
+  id          String                           @id @default(uuid())
   categoryId  String
   itemText    String
   description String?
   order       Int
-  isActive    Boolean                 @default(true)
-  createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
-  category    ChecklistCategory       @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  isActive    Boolean                          @default(true)
+  createdAt   DateTime                         @default(now())
+  updatedAt   DateTime                         @updatedAt
+  category    ChecklistCategory                @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   responses   SecurityCheckResponse[]
   history     SecurityCheckResponseHistory[]
 
@@ -78,53 +78,87 @@ model ChecklistItem {
   @@map("checklist_items")
 }
 
+model VehicleInspectionCategory {
+  id          String                  @id @default(uuid())
+  name        String                  @unique
+  description String?
+  order       Int                     @unique
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  items       VehicleInspectionItem[]
+
+  @@map("vehicle_inspection_categories")
+}
+
+model VehicleInspectionItem {
+  id          String                           @id @default(uuid())
+  categoryId  String
+  itemName    String
+  standard    String
+  order       Int
+  isActive    Boolean                          @default(true)
+  createdAt   DateTime                         @default(now())
+  updatedAt   DateTime                         @updatedAt
+  category    VehicleInspectionCategory        @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  responses   SecurityCheckResponse[]          
+  history     SecurityCheckResponseHistory[]   
+
+  @@unique([categoryId, order])
+  @@map("vehicle_inspection_items")
+}
+
 model SecurityCheck {
-  id             String                  @id @default(uuid())
-  containerId    String                  @unique
-  userId         String
-  remarks        String?
-  inspectorName  String
-  inspectionDate DateTime
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-  photos         Photo[]
-  responses      SecurityCheckResponse[]
+  id              String                           @id @default(uuid())
+  containerId     String                           @unique
+  userId          String
+  remarks         String?
+  inspectorName   String
+  inspectionDate  DateTime
+  createdAt       DateTime                         @default(now())
+  updatedAt       DateTime                         @updatedAt
+  photos          Photo[]
+  responses       SecurityCheckResponse[]
   responseHistory SecurityCheckResponseHistory[]
-  container      Container               @relation(fields: [containerId], references: [id], onDelete: Cascade)
-  user           User                    @relation(fields: [userId], references: [id])
+  container       Container                        @relation(fields: [containerId], references: [id], onDelete: Cascade)
+  user            User                             @relation(fields: [userId], references: [id])
 
   @@map("security_checks")
 }
 
 model SecurityCheckResponse {
-  id              String        @id @default(uuid())
-  securityCheckId String
-  checklistItemId String
-  notes           String?
-  checked         Boolean       @default(true)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt      
-  checklistItem   ChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
-  securityCheck   SecurityCheck @relation(fields: [securityCheckId], references: [id], onDelete: Cascade)
-  history         SecurityCheckResponseHistory[]
+  id                     String                           @id @default(uuid())
+  securityCheckId        String
+  checklistItemId        String?                          
+  vehicleInspectionItemId String?                         
+  notes                  String?
+  checked                Boolean                          @default(true)
+  createdAt              DateTime                         @default(now())
+  updatedAt              DateTime                         @updatedAt
+  checklistItem          ChecklistItem?                   @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+  vehicleInspectionItem  VehicleInspectionItem?           @relation(fields: [vehicleInspectionItemId], references: [id], onDelete: Cascade)
+  securityCheck          SecurityCheck                    @relation(fields: [securityCheckId], references: [id], onDelete: Cascade)
+  history                SecurityCheckResponseHistory[]
 
   @@unique([securityCheckId, checklistItemId])
+  @@unique([securityCheckId, vehicleInspectionItemId])
   @@map("security_check_responses")
 }
 
 model SecurityCheckResponseHistory {
-  id              String                 @id @default(uuid())
-  responseId      String?               
-  checklistItemId String
-  securityCheckId String
-  notes           String?
-  checked         Boolean
-  changedBy       String        
-  changedAt       DateTime               @default(now())
-  response        SecurityCheckResponse? @relation(fields: [responseId], references: [id], onDelete: SetNull)
-  checklistItem   ChecklistItem          @relation(fields: [checklistItemId], references: [id])
-  securityCheck   SecurityCheck          @relation(fields: [securityCheckId], references: [id], onDelete: Cascade)
-  user            User                   @relation(fields: [changedBy], references: [id])
+  id                     String                  @id @default(uuid())
+  responseId             String?
+  checklistItemId        String?
+  vehicleInspectionItemId String?
+  securityCheckId        String
+  notes                  String?
+  checked                Boolean
+  changedBy              String
+  changedAt              DateTime                @default(now())
+  response               SecurityCheckResponse?  @relation(fields: [responseId], references: [id], onDelete: SetNull)
+  checklistItem          ChecklistItem?          @relation(fields: [checklistItemId], references: [id])
+  vehicleInspectionItem  VehicleInspectionItem?  @relation(fields: [vehicleInspectionItemId], references: [id])
+  securityCheck          SecurityCheck           @relation(fields: [securityCheckId], references: [id], onDelete: Cascade)
+  user                   User                    @relation(fields: [changedBy], references: [id])
 
   @@map("security_check_response_history")
 }
@@ -134,7 +168,7 @@ model CheckerData {
   containerId   String    @unique
   userId        String
   utcNo         String    @unique
-  inspectorName String    
+  inspectorName String
   remarks       String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -144,7 +178,6 @@ model CheckerData {
 
   @@map("checker_data")
 }
-
 
 model Photo {
   id              String         @id @default(uuid())

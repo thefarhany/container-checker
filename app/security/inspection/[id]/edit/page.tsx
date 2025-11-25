@@ -23,7 +23,6 @@ export default async function EditInspectionPage({ params }: PageProps) {
 
   const resolvedParams = await params;
 
-  // Fetch inspection dengan semua relasi
   const inspection = await prisma.securityCheck.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -32,6 +31,11 @@ export default async function EditInspectionPage({ params }: PageProps) {
       responses: {
         include: {
           checklistItem: {
+            include: {
+              category: true,
+            },
+          },
+          vehicleInspectionItem: {
             include: {
               category: true,
             },
@@ -67,16 +71,26 @@ export default async function EditInspectionPage({ params }: PageProps) {
     orderBy: { order: "asc" },
   });
 
-  // Fetch inspector names by role
+  const vehicleCategories = await prisma.vehicleInspectionCategory.findMany({
+    include: {
+      items: {
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      },
+    },
+    orderBy: { order: "asc" },
+  });
+
   const inspectorNames = await getInspectorNamesByRole(session.role);
 
   return (
     <DashboardLayout session={session}>
       <InspectionFormUnified
+        userRole="SECURITY"
         mode="edit"
         categories={categories}
+        vehicleCategories={vehicleCategories}
         inspection={inspection}
-        userRole={session.role as "SECURITY"}
         inspectorNames={inspectorNames}
       />
     </DashboardLayout>

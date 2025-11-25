@@ -24,6 +24,7 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   }
 
   const resolvedParams = await params;
+
   const container = await prisma.container.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -38,6 +39,11 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
           responses: {
             include: {
               checklistItem: {
+                include: {
+                  category: true,
+                },
+              },
+              vehicleInspectionItem: {
                 include: {
                   category: true,
                 },
@@ -71,13 +77,15 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   if (!container.securityCheck) {
     return (
       <DashboardLayout session={session}>
-        <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="text-center max-w-md p-8 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <div className="text-yellow-600 text-5xl mb-4">⚠️</div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">
-              Kontainer Belum Diperiksa Security
-            </h2>
-            <p className="text-gray-600">
+        <div className="max-w-4xl mx-auto p-6">
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg shadow-md">
+            <div className="flex items-center mb-4">
+              <div className="text-yellow-500 text-4xl mr-4">⚠️</div>
+              <h2 className="text-2xl font-bold text-yellow-800">
+                Kontainer Belum Diperiksa Security
+              </h2>
+            </div>
+            <p className="text-gray-700 text-lg">
               Kontainer harus diperiksa oleh Security terlebih dahulu sebelum
               Checker melakukan pemeriksaan.
             </p>
@@ -104,18 +112,32 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   });
 
   const historyByChecklistItem = new Map();
+  const historyByVehicleItem = new Map();
+
   allHistories.forEach((history) => {
-    const existing = historyByChecklistItem.get(history.checklistItemId) || [];
-    existing.push(history);
-    historyByChecklistItem.set(history.checklistItemId, existing);
+    if (history.checklistItemId) {
+      const existing =
+        historyByChecklistItem.get(history.checklistItemId) || [];
+      existing.push(history);
+      historyByChecklistItem.set(history.checklistItemId, existing);
+    }
+
+    if (history.vehicleInspectionItemId) {
+      const existing =
+        historyByVehicleItem.get(history.vehicleInspectionItemId) || [];
+      existing.push(history);
+      historyByVehicleItem.set(history.vehicleInspectionItemId, existing);
+    }
   });
 
   const responsesWithHistory = container.securityCheck.responses.map(
     (response) => ({
       ...response,
-      history: historyByChecklistItem.get(response.checklistItemId) || [],
+      history: response.checklistItemId
+        ? historyByChecklistItem.get(response.checklistItemId) || []
+        : historyByVehicleItem.get(response.vehicleInspectionItemId) || [],
     })
-  );
+  ) as any;
 
   const inspectorNames = await getInspectorNamesByRole("CHECKER");
 
@@ -131,7 +153,6 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
           }}
           checkerData={container.checkerData}
           inspectorNames={inspectorNames}
-          securityInspectorName={container.securityCheck.inspectorName}
         />
       </DashboardLayout>
     );
@@ -147,7 +168,6 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
           responses: responsesWithHistory,
         }}
         inspectorNames={inspectorNames}
-        securityInspectorName={container.securityCheck.inspectorName}
       />
     </DashboardLayout>
   );

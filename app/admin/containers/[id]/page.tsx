@@ -18,6 +18,7 @@ import {
   Truck,
   Clock,
   AlertCircle,
+  Check,
 } from "lucide-react";
 
 interface HistoryItem {
@@ -28,7 +29,7 @@ interface HistoryItem {
   user: { name: string } | null;
 }
 
-interface ResponseItem {
+interface ChecklistResponseItem {
   id: string;
   checked: boolean;
   notes: string | null;
@@ -47,16 +48,27 @@ interface ResponseItem {
   history: HistoryItem[];
 }
 
-interface PhotoItem {
+interface VehicleResponseItem {
   id: string;
-  url: string;
-  filename: string;
+  checked: boolean;
+  notes: string | null;
+  vehicleInspectionItem: {
+    id: string;
+    itemName: string;
+    standard: string;
+    order: number;
+    category: {
+      id: string;
+      name: string;
+      description: string | null;
+      order: number;
+    };
+  };
+  history: HistoryItem[];
 }
 
 interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
 function ChecklistItemWithHistory({
@@ -72,90 +84,163 @@ function ChecklistItemWithHistory({
   securityInspectorName: string;
 }) {
   return (
-    <div className="p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-      <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 mt-1">
-          {checked ? (
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-          ) : (
-            <XCircle className="h-5 w-5 text-red-600" />
-          )}
-        </div>
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-medium text-gray-900">{itemText}</p>
-            <span
-              className={`flex-shrink-0 px-2 py-1 rounded-full text-xs font-medium ${
-                checked
-                  ? "bg-green-100 text-green-800"
-                  : "bg-red-100 text-red-800"
-              }`}
-            >
-              {checked ? "OK" : "NOT OK"}
-            </span>
-          </div>
-
-          {notes && (
-            <div className="mt-2 p-2 bg-yellow-50 border-l-2 border-yellow-400 rounded">
-              <p className="text-xs font-medium text-yellow-800">
-                Catatan Security:
-              </p>
-              <p className="text-xs text-yellow-700 mt-0.5">{notes}</p>
-            </div>
-          )}
-
-          {history && history.length > 0 && (
-            <details className="mt-2 group">
-              <summary className="cursor-pointer text-xs text-purple-600 hover:text-purple-800 font-medium flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                Riwayat Perubahan
-              </summary>
-              <div className="mt-1 space-y-1 pl-4 border-l border-purple-200">
-                {history.map((hist: HistoryItem, index: number) => (
-                  <div
-                    key={hist.id || index}
-                    className="text-xs p-1.5 bg-white rounded"
-                  >
-                    <div className="flex items-center gap-1.5">
-                      {hist.checked ? (
-                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                      ) : (
-                        <XCircle className="h-3 w-3 text-red-600" />
-                      )}
-                      <span className="font-medium text-gray-700">
-                        {hist.checked ? "OK" : "NOT OK"}
-                      </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="text-gray-600">
-                        {new Date(hist.changedAt).toLocaleDateString("id-ID")}
-                      </span>
-                    </div>
-                    {hist.notes && (
-                      <p className="text-gray-600 mt-0.5 italic">
-                        &quot;{hist.notes}&quot;
-                      </p>
-                    )}
-                    {hist.user && (
-                      <p className="text-gray-500 text-[10px] mt-0.5">
-                        oleh: {hist.user.name}
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </details>
-          )}
-        </div>
+    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <div className="flex items-start justify-between mb-2">
+        <p className="font-medium text-gray-900 flex-1">{itemText}</p>
+        {checked ? (
+          <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+            <CheckCircle2 size={16} />
+            OK
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1 bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+            <XCircle size={16} />
+            NOT OK
+          </span>
+        )}
       </div>
+
+      {notes && (
+        <div className="mt-3 bg-white p-3 rounded border border-gray-200">
+          <p className="text-sm font-semibold text-gray-700 mb-1">
+            Catatan Security:
+          </p>
+          <p className="text-sm text-gray-600">{notes}</p>
+        </div>
+      )}
+
+      {history.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-300">
+          <p className="text-xs font-semibold text-gray-600 mb-2">
+            Riwayat Perubahan:
+          </p>
+          <div className="space-y-2">
+            {history.map((hist) => (
+              <div
+                key={hist.id}
+                className="bg-blue-50 p-2 rounded text-xs border border-blue-200"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-semibold text-blue-700">
+                    {hist.checked ? "OK" : "NOT OK"}
+                  </span>
+                  <span className="text-gray-600">
+                    {new Date(hist.changedAt).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                {hist.notes && (
+                  <p className="text-gray-700 bg-white p-1 rounded mb-1">
+                    &quot;{hist.notes}&quot;
+                  </p>
+                )}
+                {hist.user && (
+                  <p className="text-gray-600">oleh: {hist.user.name}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default async function ContainerDetailPage({ params }: PageProps) {
+function VehicleItemWithHistory({
+  itemName,
+  standard,
+  notes,
+  history,
+}: {
+  itemName: string;
+  standard: string;
+  notes: string | null;
+  checked: boolean;
+  history: HistoryItem[];
+  securityInspectorName: string;
+}) {
+  return (
+    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+      <div className="mb-2">
+        <p className="font-medium text-gray-900">{itemName}</p>
+        <p className="text-sm text-gray-600 mt-1">
+          <span className="font-semibold">Standard:</span> {standard}
+        </p>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        {notes?.includes("VISUAL") && (
+          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+            <Check size={16} />
+            VISUAL
+          </span>
+        )}
+        {notes?.includes("FUNCTION") && (
+          <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+            <Check size={16} />
+            FUNCTION
+          </span>
+        )}
+        {!notes && (
+          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-sm font-medium">
+            Belum Diperiksa
+          </span>
+        )}
+      </div>
+
+      {history.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-gray-300">
+          <p className="text-xs font-semibold text-gray-600 mb-2">
+            Riwayat Perubahan:
+          </p>
+          <div className="space-y-2">
+            {history.map((hist) => (
+              <div
+                key={hist.id}
+                className="bg-blue-50 p-2 rounded text-xs border border-blue-200"
+              >
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex gap-1">
+                    {hist.notes?.includes("VISUAL") && (
+                      <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded text-xs font-medium">
+                        VISUAL
+                      </span>
+                    )}
+                    {hist.notes?.includes("FUNCTION") && (
+                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded text-xs font-medium">
+                        FUNCTION
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-gray-600">
+                    {new Date(hist.changedAt).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+                {hist.user && (
+                  <p className="text-gray-600">oleh: {hist.user.name}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default async function AdminContainerDetailPage({ params }: PageProps) {
   const session = await getSession();
   if (!session || session.role !== "ADMIN") {
-    redirect("/login");
+    redirect("/");
   }
 
   const resolvedParams = await params;
@@ -178,10 +263,10 @@ export default async function ContainerDetailPage({ params }: PageProps) {
                   category: true,
                 },
               },
-            },
-            orderBy: {
-              checklistItem: {
-                order: "asc",
+              vehicleInspectionItem: {
+                include: {
+                  category: true,
+                },
               },
             },
           },
@@ -204,303 +289,271 @@ export default async function ContainerDetailPage({ params }: PageProps) {
     redirect("/admin/containers");
   }
 
-  const { securityCheck, checkerData } = container;
-
-  let responsesWithHistory: ResponseItem[] = [];
-  let responsesByCategory: Record<string, ResponseItem[]> = {};
-
-  if (securityCheck) {
-    const allHistories = await prisma.securityCheckResponseHistory.findMany({
-      where: {
-        securityCheckId: securityCheck.id,
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
+  const allHistories = container.securityCheck
+    ? await prisma.securityCheckResponseHistory.findMany({
+        where: {
+          securityCheckId: container.securityCheck.id,
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-      orderBy: {
-        changedAt: "desc",
-      },
-    });
+        orderBy: {
+          changedAt: "desc",
+        },
+      })
+    : [];
 
-    const historyByChecklistItem = new Map<string, HistoryItem[]>();
-    allHistories.forEach((history) => {
+  const historyByChecklistItem = new Map();
+  const historyByVehicleItem = new Map();
+
+  allHistories.forEach((history) => {
+    if (history.checklistItemId) {
       const existing =
         historyByChecklistItem.get(history.checklistItemId) || [];
       existing.push(history);
       historyByChecklistItem.set(history.checklistItemId, existing);
-    });
+    }
 
-    responsesWithHistory = securityCheck.responses.map((response) => ({
-      ...response,
-      history: historyByChecklistItem.get(response.checklistItemId) || [],
-    }));
+    if (history.vehicleInspectionItemId) {
+      const existing =
+        historyByVehicleItem.get(history.vehicleInspectionItemId) || [];
+      existing.push(history);
+      historyByVehicleItem.set(history.vehicleInspectionItemId, existing);
+    }
+  });
 
-    responsesByCategory = responsesWithHistory.reduce((acc, response) => {
-      const catId = response.checklistItem.category.id;
-      if (!acc[catId]) {
-        acc[catId] = [];
+  const checklistResponses: ChecklistResponseItem[] = container.securityCheck
+    ? container.securityCheck.responses
+        .filter((r) => r.checklistItemId)
+        .map((response) => ({
+          ...response,
+          checklistItem: response.checklistItem!,
+          history: historyByChecklistItem.get(response.checklistItemId!) || [],
+        }))
+    : [];
+
+  const vehicleResponses: VehicleResponseItem[] = container.securityCheck
+    ? container.securityCheck.responses
+        .filter((r) => r.vehicleInspectionItemId)
+        .map((response) => ({
+          ...response,
+          vehicleInspectionItem: response.vehicleInspectionItem!,
+          history:
+            historyByVehicleItem.get(response.vehicleInspectionItemId!) || [],
+        }))
+    : [];
+
+  const checklistByCategory = checklistResponses.reduce(
+    (acc, response) => {
+      const category = response.checklistItem.category;
+      if (!acc[category.id]) {
+        acc[category.id] = {
+          category,
+          responses: [],
+        };
       }
-      acc[catId].push(response);
+      acc[category.id].responses.push(response);
       return acc;
-    }, {} as Record<string, ResponseItem[]>);
-  }
+    },
+    {} as Record<
+      string,
+      {
+        category: ChecklistResponseItem["checklistItem"]["category"];
+        responses: ChecklistResponseItem[];
+      }
+    >
+  );
+
+  const vehicleByCategory = vehicleResponses.reduce(
+    (acc, response) => {
+      const category = response.vehicleInspectionItem.category;
+      if (!acc[category.id]) {
+        acc[category.id] = {
+          category,
+          responses: [],
+        };
+      }
+      acc[category.id].responses.push(response);
+      return acc;
+    },
+    {} as Record<
+      string,
+      {
+        category: VehicleResponseItem["vehicleInspectionItem"]["category"];
+        responses: VehicleResponseItem[];
+      }
+    >
+  );
+
+  const securityCheck = container.securityCheck;
+  const checkerData = container.checkerData;
+
+  const formatDate = (date: Date) => {
+    return new Date(date).toLocaleDateString("id-ID", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
     <DashboardLayout session={session}>
-      <div className="min-h-screen bg-gray-50 py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link
-                href="/admin/containers"
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="font-medium">Kembali</span>
-              </Link>
-              <div className="h-6 w-px bg-gray-300" />
-              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                <FileText className="h-7 w-7 text-purple-600" />
-                Lihat detail dan riwayat pemeriksaan kontainer
-              </h1>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-6">
+            <Link
+              href="/admin/containers"
+              className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium mb-4 transition-colors"
+            >
+              <ArrowLeft size={20} />
+              Kembali ke Daftar Container
+            </Link>
+
+            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8">
+              <div className="flex items-center gap-3 mb-4">
+                <Package className="text-blue-600" size={32} />
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-bold text-gray-800">
+                    Detail Container
+                  </h1>
+                  <p className="text-gray-600">
+                    {container.containerNo} - {container.companyName}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-4">
+                {securityCheck ? (
+                  <span className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium">
+                    <Shield size={16} />
+                    Security: Selesai
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm font-medium">
+                    <AlertCircle size={16} />
+                    Security: Belum
+                  </span>
+                )}
+
+                {checkerData ? (
+                  <span className="inline-flex items-center gap-2 bg-blue-100 text-blue-800 px-4 py-2 rounded-full text-sm font-medium">
+                    <ClipboardCheck size={16} />
+                    Checker: Selesai
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-2 bg-gray-100 text-gray-600 px-4 py-2 rounded-full text-sm font-medium">
+                    <AlertCircle size={16} />
+                    Checker: Belum
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Alert Messages */}
-          {!securityCheck && !checkerData && (
-            <div className="mb-6 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-yellow-700">
-                    Security dan Checker belum melakukan pemeriksaan.
+          <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              <Building2 size={24} />
+              Informasi Kontainer
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nomor Kontainer
+                </label>
+                <p className="text-gray-900 font-medium">
+                  {container.containerNo}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nama Perusahaan
+                </label>
+                <p className="text-gray-900 font-medium">
+                  {container.companyName}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nomor Seal
+                </label>
+                <p className="text-gray-900 font-medium">{container.sealNo}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nomor Plat
+                </label>
+                <p className="text-gray-900 font-medium">{container.plateNo}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Tanggal Pemeriksaan
+                </label>
+                <p className="text-gray-900 font-medium flex items-center gap-2">
+                  <Calendar size={16} className="text-gray-600" />
+                  {formatDate(container.inspectionDate)}
+                </p>
+              </div>
+              {securityCheck && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Pemeriksa Security
+                  </label>
+                  <p className="text-gray-900 font-medium">
+                    {securityCheck.inspectorName}
                   </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {securityCheck && !checkerData && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    Checker belum melakukan pemeriksaan.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!securityCheck && checkerData && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    Security belum melakukan pemeriksaan.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Container Info */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-            <div className="bg-purple-600 px-6 py-4">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Package className="h-6 w-6" />
-                Informasi Kontainer
-              </h2>
-            </div>
-
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Package className="h-5 w-5 text-purple-600" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Nomor Kontainer
-                  </label>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {container.containerNo}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Building2 className="h-5 w-5 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Nama Perusahaan
-                  </label>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {container.companyName}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                  <Shield className="h-5 w-5 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Nomor Seal
-                  </label>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {container.sealNo}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                  <Truck className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Nomor Plat
-                  </label>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {container.plateNo}
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                  <Calendar className="h-5 w-5 text-red-600" />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-500 mb-1">
-                    Tanggal Pemeriksaan
-                  </label>
-                  <div className="text-lg font-semibold text-gray-900">
-                    {new Date(container.inspectionDate).toLocaleDateString(
-                      "id-ID",
-                      {
-                        day: "numeric",
-                        month: "long",
-                        year: "numeric",
-                      }
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {checkerData && (
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                    <ClipboardCheck className="h-5 w-5 text-indigo-600" />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-500 mb-1">
-                      No. UTC
-                    </label>
-                    <div className="text-lg font-semibold text-gray-900">
-                      {checkerData.utcNo}
-                    </div>
-                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Security Check */}
-          {securityCheck && (
-            <details className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden mb-6">
-              <summary className="px-6 py-4 bg-green-600 cursor-pointer hover:bg-green-700 transition-colors flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Shield className="h-6 w-6" />
-                  Hasil Security Check oleh {securityCheck.inspectorName}
-                </h2>
-                <div className="text-white text-sm">
-                  Diperiksa pada{" "}
-                  {new Date(securityCheck.createdAt).toLocaleDateString(
-                    "id-ID",
-                    {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }
-                  )}
-                </div>
-              </summary>
-
-              <div className="p-6">
-                {securityCheck.remarks && (
-                  <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                    <p className="text-sm font-medium text-blue-800">
-                      Catatan Keseluruhan:
-                    </p>
-                    <p className="text-sm text-blue-700 mt-2">
-                      {securityCheck.remarks}
-                    </p>
-                  </div>
-                )}
-
-                <div className="mb-4 flex items-center justify-between">
-                  <p className="text-sm text-gray-600">
-                    {responsesWithHistory.length} item pemeriksaan
+          {securityCheck ? (
+            <>
+              {Object.keys(vehicleByCategory).length > 0 && (
+                <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Truck size={24} />
+                    Vehicle Inspection Results
+                  </h2>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Standar: PP/No.55/2012 & OSHA 29 CFR 1910
                   </p>
-                  <button
-                    type="button"
-                    className="text-sm text-purple-600 hover:text-purple-800 font-medium"
-                  >
-                    Klik untuk buka
-                  </button>
-                </div>
 
-                <div className="space-y-6">
-                  {/* ✅ FIX: Remove [string, any] - Let TypeScript infer */}
-                  {Object.entries(responsesByCategory).map(
-                    ([categoryName, responses], categoryIndex) => {
-                      const category = responses[0]?.checklistItem.category;
-                      return (
-                        <div
-                          key={categoryName}
-                          className="border border-gray-200 rounded-lg overflow-hidden"
-                        >
-                          <div className="px-4 py-3 bg-purple-50 flex items-center gap-3">
-                            <span className="text-xl font-bold text-purple-600">
-                              {categoryIndex + 1}
-                            </span>
-                            <div>
-                              <h3 className="text-base font-semibold text-gray-900">
-                                {category?.name}
-                              </h3>
-                              {category?.description && (
-                                <p className="text-xs text-gray-600 mt-0.5">
-                                  {category.description}
-                                </p>
-                              )}
-                            </div>
-                          </div>
+                  {Object.values(vehicleByCategory)
+                    .sort((a, b) => a.category.order - b.category.order)
+                    .map((cat, categoryIndex) => (
+                      <div key={cat.category.id} className="mb-8 last:mb-0">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2">
+                          {categoryIndex + 1}. {cat.category.name}
+                        </h3>
+                        {cat.category.description && (
+                          <p className="text-sm text-gray-600 mb-4 italic">
+                            {cat.category.description}
+                          </p>
+                        )}
 
-                          <div className="p-4 space-y-3 bg-white">
-                            {/* ✅ FIX: Remove (response: any) - TypeScript knows type */}
-                            {responses.map((response) => (
-                              <ChecklistItemWithHistory
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {cat.responses
+                            .sort(
+                              (a, b) =>
+                                a.vehicleInspectionItem.order -
+                                b.vehicleInspectionItem.order
+                            )
+                            .map((response) => (
+                              <VehicleItemWithHistory
                                 key={response.id}
-                                itemText={response.checklistItem.itemText}
+                                itemName={
+                                  response.vehicleInspectionItem.itemName
+                                }
+                                standard={
+                                  response.vehicleInspectionItem.standard
+                                }
                                 notes={response.notes}
                                 checked={response.checked}
                                 history={response.history}
@@ -509,112 +562,219 @@ export default async function ContainerDetailPage({ params }: PageProps) {
                                 }
                               />
                             ))}
-                          </div>
                         </div>
-                      );
-                    }
-                  )}
+                      </div>
+                    ))}
                 </div>
+              )}
 
-                {securityCheck.photos && securityCheck.photos.length > 0 && (
-                  <div className="mt-6">
-                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <ImageIcon className="h-5 w-5 text-gray-600" />
-                      Foto Pemeriksaan Security ({securityCheck.photos.length})
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {/* ✅ FIX: Remove (photo: any) - Use PhotoItem type */}
-                      {securityCheck.photos.map((photo: PhotoItem) => (
-                        <a
-                          key={photo.id}
-                          href={photo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-purple-400 transition-colors group"
-                        >
-                          <Image
-                            src={photo.url}
-                            alt={photo.filename}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform"
-                          />
-                        </a>
-                      ))}
+              <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <Shield size={24} />
+                  Hasil Pemeriksaan Security
+                </h2>
+
+                {Object.values(checklistByCategory)
+                  .sort((a, b) => a.category.order - b.category.order)
+                  .map((cat, categoryIndex) => (
+                    <div key={cat.category.id} className="mb-8 last:mb-0">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b-2 border-gray-200 pb-2">
+                        {categoryIndex + 1}. {cat.category.name}
+                      </h3>
+                      {cat.category.description && (
+                        <p className="text-sm text-gray-600 mb-4 italic">
+                          {cat.category.description}
+                        </p>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {cat.responses
+                          .sort(
+                            (a, b) =>
+                              a.checklistItem.order - b.checklistItem.order
+                          )
+                          .map((response) => (
+                            <ChecklistItemWithHistory
+                              key={response.id}
+                              itemText={response.checklistItem.itemText}
+                              notes={response.notes}
+                              checked={response.checked}
+                              history={response.history}
+                              securityInspectorName={
+                                securityCheck.inspectorName
+                              }
+                            />
+                          ))}
+                      </div>
                     </div>
+                  ))}
+
+                {securityCheck.remarks && (
+                  <div className="mt-6 pt-6 border-t border-gray-200">
+                    <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <FileText size={16} />
+                      Catatan Keseluruhan:
+                    </p>
+                    <p className="text-gray-900 bg-gray-50 p-4 rounded-lg">
+                      {securityCheck.remarks}
+                    </p>
                   </div>
                 )}
               </div>
-            </details>
+
+              {securityCheck.photos.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <ImageIcon size={24} />
+                    Foto Security Inspection ({securityCheck.photos.length})
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {securityCheck.photos.map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="relative rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors group"
+                      >
+                        <Image
+                          src={photo.url}
+                          alt={photo.filename}
+                          width={300}
+                          height={300}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute inset-0 transition-all flex items-center justify-center">
+                          <a
+                            href={photo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-3 py-1 rounded text-sm font-medium"
+                          >
+                            Lihat
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="bg-yellow-50 border-l-4 border-yellow-500 rounded-lg p-6 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle
+                  className="text-yellow-600 flex-shrink-0 mt-1"
+                  size={24}
+                />
+                <div>
+                  <h3 className="text-lg font-bold text-yellow-800 mb-2">
+                    Security belum melakukan pemeriksaan
+                  </h3>
+                  <p className="text-yellow-700">
+                    Container ini belum diperiksa oleh Security.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
-          {/* Checker Data */}
-          {checkerData && (
-            <details className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-              <summary className="px-6 py-4 bg-blue-600 cursor-pointer hover:bg-blue-700 transition-colors flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <ClipboardCheck className="h-6 w-6" />
-                  Data Checker oleh {checkerData.inspectorName}
+          {checkerData ? (
+            <>
+              <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <ClipboardCheck size={24} />
+                  Data Checker
                 </h2>
-                <div className="text-white text-sm">
-                  Diperiksa pada{" "}
-                  {new Date(checkerData.createdAt).toLocaleDateString("id-ID", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </div>
-              </summary>
-
-              <div className="p-6">
-                {checkerData.remarks && (
-                  <div className="mb-6 p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
-                    <p className="text-sm font-medium text-blue-800">
-                      Catatan Keseluruhan:
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Inspector Checker
+                    </label>
+                    <p className="text-gray-900 font-medium">
+                      {checkerData.inspectorName}
                     </p>
-                    <p className="text-sm text-blue-700 mt-2">
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      No. UTC
+                    </label>
+                    <p className="text-gray-900 font-medium">
+                      {checkerData.utcNo}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <Clock size={16} />
+                      Waktu Input
+                    </label>
+                    <p className="text-gray-900 font-medium">
+                      {formatDate(checkerData.createdAt)}
+                    </p>
+                  </div>
+                </div>
+                {checkerData.remarks && (
+                  <div className="mt-6">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                      <FileText size={16} />
+                      Catatan
+                    </label>
+                    <p className="text-gray-900 bg-gray-50 p-4 rounded-lg">
                       {checkerData.remarks}
                     </p>
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  className="text-sm text-purple-600 hover:text-purple-800 font-medium mb-4"
-                >
-                  Klik untuk buka
-                </button>
-
-                {checkerData.photos && checkerData.photos.length > 0 && (
-                  <div>
-                    <h3 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <ImageIcon className="h-5 w-5 text-gray-600" />
-                      Foto Pemeriksaan Checker ({checkerData.photos.length})
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                      {/* ✅ FIX: Remove (photo: any) - Use PhotoItem type */}
-                      {checkerData.photos.map((photo: PhotoItem) => (
-                        <a
-                          key={photo.id}
-                          href={photo.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors group"
-                        >
-                          <Image
-                            src={photo.url}
-                            alt={photo.filename}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform"
-                          />
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
-            </details>
+
+              {checkerData.photos.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                    <ImageIcon size={24} />
+                    Foto Checker ({checkerData.photos.length})
+                  </h2>
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {checkerData.photos.map((photo) => (
+                      <div
+                        key={photo.id}
+                        className="relative rounded-lg overflow-hidden border-2 border-gray-200 hover:border-blue-400 transition-colors group"
+                      >
+                        <Image
+                          src={photo.url}
+                          alt={photo.filename}
+                          width={300}
+                          height={300}
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute inset-0 transition-all flex items-center justify-center">
+                          <a
+                            href={photo.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="opacity-0 group-hover:opacity-100 bg-white text-gray-800 px-3 py-1 rounded text-sm font-medium"
+                          >
+                            Lihat
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-6 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle
+                  className="text-blue-600 flex-shrink-0 mt-1"
+                  size={24}
+                />
+                <div>
+                  <h3 className="text-lg font-bold text-blue-800 mb-2">
+                    Checker belum melakukan pemeriksaan
+                  </h3>
+                  <p className="text-blue-700">
+                    Container ini belum diperiksa oleh Checker.
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

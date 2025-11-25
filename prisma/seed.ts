@@ -42,7 +42,7 @@ async function main() {
 
   console.log("✅ Users seeded");
 
-  // Create Checklist Categories & Items
+  // Create Checklist Categories & Items (CONTAINER)
   const categories = [
     {
       name: "Outside/Undercarriage",
@@ -220,6 +220,168 @@ async function main() {
   }
 
   console.log("✅ Checklist categories and items seeded");
+
+  // ========== CREATE VEHICLE INSPECTION CATEGORIES & ITEMS ==========
+  const vehicleCategories = [
+    {
+      name: "Common Items",
+      description: "Standar PP/No.55/2012 & OSHA 29 CFR 1910",
+      order: 1,
+      items: [
+        {
+          itemName: "Wheel tire (ban)",
+          standard:
+            "Not inflated, as manufacturing standard (Tidak bocor, kondisi masih aman sesuai dengan pabrikan)",
+          order: 1,
+        },
+        {
+          itemName: "Fuel cap (tutup bahan bakar)",
+          standard:
+            "Tight, as manufacturing standard (rapat, sesuai standar pabrikan)",
+          order: 2,
+        },
+        {
+          itemName: "Fuel tank (tangki bahan bakar)",
+          standard: "Not leak (tidak bocor)",
+          order: 3,
+        },
+        {
+          itemName: "Accu cover (tutup aki)",
+          standard:
+            "Cover all surface with isolator material ex.rubber (menutup seluruh permukaan dengan material isolator ex.karet)",
+          order: 4,
+        },
+        {
+          itemName: "Rearview mirror (Spion)",
+          standard: "Clear (Jelas)",
+          order: 5,
+        },
+        {
+          itemName: "Horn (Klakson)",
+          standard: "Work (Berfungsi dengan baik)",
+          order: 6,
+        },
+        {
+          itemName: "Engine (Mesin)",
+          standard:
+            "Work, No leak, noise (berfungsi, tidak bocor, tidak berisik)",
+          order: 7,
+        },
+        {
+          itemName: "Brake (Rem)",
+          standard: "Work (Berfungsi dengan baik)",
+          order: 8,
+        },
+        {
+          itemName: "Hand brake (Rem Tangan)",
+          standard: "Work (Berfungsi dengan baik)",
+          order: 9,
+        },
+        {
+          itemName: "Head, brake, signal light (Lampu besar, rem, sein)",
+          standard: "Work (Berfungsi dengan baik)",
+          order: 10,
+        },
+        {
+          itemName: "Cabin indicator (Indikator pada kabin)",
+          standard: "Work (Berfungsi dengan baik)",
+          order: 11,
+        },
+        {
+          itemName: "Wiper",
+          standard: "Work (Berfungsi dengan baik)",
+          order: 12,
+        },
+        {
+          itemName: "Decline alarm (Alarm Mundur)",
+          standard: "Work (berfungsi dengan baik)",
+          order: 13,
+        },
+        {
+          itemName: "Emission (Emisi gas buang)",
+          standard: "Lulus dari Dinas Perhubungan",
+          order: 14,
+        },
+      ],
+    },
+    {
+      name: "Special Requirements",
+      description: "Persyaratan Khusus untuk Kendaraan Pengangkut B3",
+      order: 2,
+      items: [
+        {
+          itemName: "Hazard sign (Simbol rambu B3)",
+          standard:
+            "As manufacturing standard (sesuai dengan standar pabrikan)",
+          order: 1,
+        },
+        {
+          itemName: "Ladder (Tangga)",
+          standard: "Accessible, not damage (Mudah diakses dan tidak rusak)",
+          order: 2,
+        },
+        {
+          itemName: "Fire extinguisher (Alat pemadam api ringan)",
+          standard: "Min.rating 80BC (minimal 2 tabung dengan rating 80 BC)",
+          order: 3,
+        },
+        {
+          itemName: "Safety cone/segitiga pengaman",
+          standard: "Tersedia dan minimal 2 ea.",
+          order: 4,
+        },
+        {
+          itemName: "Flame arrestor",
+          standard: "Tersedia dan terpasang",
+          order: 5,
+        },
+        {
+          itemName: "Certificate from highway dept. (Surat Ijin dari Dishub)",
+          standard:
+            "Passed government regulation no. B-III/DEP.IV/LH/01/2012 (copy document shall be attached)",
+          order: 6,
+        },
+        {
+          itemName: "Driving license B2 (SIM B2 Umum)",
+          standard: "Tersedia dan masih berlaku",
+          order: 7,
+        },
+        {
+          itemName: "Special PPE",
+          standard:
+            "Safety helmet min req. 2 unit; Safety glass/goggles min req. 2 unit; Face shield min req. 2 unit; Safety shoes or safety boot min req. 2 unit",
+          order: 8,
+        },
+      ],
+    },
+  ];
+
+  for (const category of vehicleCategories) {
+    const { items, ...categoryData } = category;
+    const createdCategory = await prisma.vehicleInspectionCategory.upsert({
+      where: { name: category.name },
+      update: {},
+      create: categoryData,
+    });
+
+    for (const item of items) {
+      await prisma.vehicleInspectionItem.upsert({
+        where: {
+          categoryId_order: {
+            categoryId: createdCategory.id,
+            order: item.order,
+          },
+        },
+        update: {},
+        create: {
+          ...item,
+          categoryId: createdCategory.id,
+        },
+      });
+    }
+  }
+
+  console.log("✅ Vehicle inspection categories and items seeded");
 }
 
 main()

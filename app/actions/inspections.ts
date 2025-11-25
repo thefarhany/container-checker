@@ -60,11 +60,28 @@ export async function createInspection(formData: FormData): Promise<void> {
       where: { isActive: true },
     });
 
-    const responses = checklistItems.map((item) => ({
+    const vehicleItems = await prisma.vehicleInspectionItem.findMany({
+      where: { isActive: true },
+    });
+
+    const checklistResponses = checklistItems.map((item) => ({
       checklistItemId: item.id,
+      vehicleInspectionItemId: null,
       checked: formData.get(`checklist-${item.id}`) === "on",
       notes: (formData.get(`notes-${item.id}`) as string) || null,
     }));
+
+    const vehicleResponses = vehicleItems.map((item) => {
+      const vehicleData = formData.get(`vehicle-${item.id}`) as string;
+      return {
+        checklistItemId: null,
+        vehicleInspectionItemId: item.id,
+        checked: vehicleData ? true : false,
+        notes: vehicleData || null,
+      };
+    });
+
+    const responses = [...checklistResponses, ...vehicleResponses];
 
     const atLeastOneChecked = responses.some((r) => r.checked === true);
     if (!atLeastOneChecked) {
@@ -75,7 +92,6 @@ export async function createInspection(formData: FormData): Promise<void> {
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
-
     if (validPhotos.length < 1) {
       throw new Error("Minimal 1 foto harus diupload");
     }
@@ -161,6 +177,7 @@ export async function createInspection(formData: FormData): Promise<void> {
         data: responses.map((r) => ({
           securityCheckId: securityCheck.id,
           checklistItemId: r.checklistItemId,
+          vehicleInspectionItemId: r.vehicleInspectionItemId,
           checked: r.checked,
           notes: r.notes,
         })),
@@ -171,6 +188,7 @@ export async function createInspection(formData: FormData): Promise<void> {
         select: {
           id: true,
           checklistItemId: true,
+          vehicleInspectionItemId: true,
           checked: true,
           notes: true,
         },
@@ -179,6 +197,7 @@ export async function createInspection(formData: FormData): Promise<void> {
       const historyData = createdResponses.map((response) => ({
         responseId: response.id,
         checklistItemId: response.checklistItemId,
+        vehicleInspectionItemId: response.vehicleInspectionItemId,
         securityCheckId: securityCheck.id,
         notes: response.notes,
         checked: response.checked,
@@ -253,11 +272,28 @@ export async function updateInspection(
       where: { isActive: true },
     });
 
-    const responses = checklistItems.map((item) => ({
+    const vehicleItems = await prisma.vehicleInspectionItem.findMany({
+      where: { isActive: true },
+    });
+
+    const checklistResponses = checklistItems.map((item) => ({
       checklistItemId: item.id,
+      vehicleInspectionItemId: null,
       checked: formData.get(`checklist-${item.id}`) === "on",
       notes: (formData.get(`notes-${item.id}`) as string) || null,
     }));
+
+    const vehicleResponses = vehicleItems.map((item) => {
+      const vehicleData = formData.get(`vehicle-${item.id}`) as string;
+      return {
+        checklistItemId: null,
+        vehicleInspectionItemId: item.id,
+        checked: vehicleData ? true : false,
+        notes: vehicleData || null,
+      };
+    });
+
+    const responses = [...checklistResponses, ...vehicleResponses];
 
     const photos = formData.getAll("photos") as File[];
     const validPhotos = photos.filter((photo) => photo && photo.size > 0);
@@ -329,11 +365,14 @@ export async function updateInspection(
         });
 
         const oldResponses = inspection.responses;
-
         const changedItems = [];
+
         for (const newResponse of responses) {
-          const oldResponse = oldResponses.find(
-            (r) => r.checklistItemId === newResponse.checklistItemId
+          const oldResponse = oldResponses.find((r) =>
+            newResponse.checklistItemId
+              ? r.checklistItemId === newResponse.checklistItemId
+              : r.vehicleInspectionItemId ===
+                newResponse.vehicleInspectionItemId
           );
 
           if (oldResponse) {
@@ -346,6 +385,7 @@ export async function updateInspection(
             if (hasChanged) {
               changedItems.push({
                 checklistItemId: newResponse.checklistItemId,
+                vehicleInspectionItemId: newResponse.vehicleInspectionItemId,
                 notes: newResponse.notes,
                 checked: newResponse.checked,
               });
@@ -361,6 +401,7 @@ export async function updateInspection(
           data: responses.map((r) => ({
             securityCheckId: inspectionId,
             checklistItemId: r.checklistItemId,
+            vehicleInspectionItemId: r.vehicleInspectionItemId,
             checked: r.checked,
             notes: r.notes,
           })),
@@ -372,15 +413,19 @@ export async function updateInspection(
 
         if (changedItems.length > 0) {
           const historyData = [];
+
           for (const item of changedItems) {
-            const newResponse = newResponsesCreated.find(
-              (r) => r.checklistItemId === item.checklistItemId
+            const newResponse = newResponsesCreated.find((r) =>
+              item.checklistItemId
+                ? r.checklistItemId === item.checklistItemId
+                : r.vehicleInspectionItemId === item.vehicleInspectionItemId
             );
 
             if (newResponse) {
               historyData.push({
                 responseId: newResponse.id,
                 checklistItemId: item.checklistItemId,
+                vehicleInspectionItemId: item.vehicleInspectionItemId,
                 securityCheckId: inspectionId,
                 notes: item.notes,
                 checked: item.checked,
@@ -495,6 +540,7 @@ export async function deleteInspection(containerId: string) {
     }
 
     const allPhotoUrls: string[] = [];
+
     if (container.securityCheck?.photos) {
       container.securityCheck.photos.forEach((photo) => {
         const filePath = photo.url.split("/").slice(-2).join("/");
@@ -582,6 +628,7 @@ export async function deleteInspection(containerId: string) {
     return { success: true };
   } catch (err) {
     let errorMessage = "Gagal menghapus data kontainer";
+
     if (err instanceof Error) {
       if (err.message.includes("Foreign key constraint")) {
         errorMessage =
@@ -592,6 +639,7 @@ export async function deleteInspection(containerId: string) {
         errorMessage = err.message;
       }
     }
+
     console.error("Delete error:", err);
     return { success: false, error: errorMessage };
   }

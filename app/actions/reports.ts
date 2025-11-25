@@ -17,7 +17,6 @@ export async function getReportData(filters: {
   try {
     const { status, dateFrom, dateTo, search } = filters;
 
-    // ✅ Query sesuai schema - inspectorName, remarks, utcNo adalah FIELD biasa
     const containers = await prisma.container.findMany({
       include: {
         securityCheck: {
@@ -38,6 +37,16 @@ export async function getReportData(filters: {
                 checklistItem: {
                   include: {
                     category: true,
+                  },
+                },
+                vehicleInspectionItem: {
+                  include: {
+                    category: true,
+                  },
+                },
+                history: {
+                  orderBy: {
+                    changedAt: "desc",
                   },
                 },
               },
@@ -70,14 +79,12 @@ export async function getReportData(filters: {
       },
     });
 
-    // ✅ Inject history per checklist item
     const containersWithHistory = await Promise.all(
       containers.map(async (container) => {
         if (!container.securityCheck) {
           return container;
         }
 
-        // Ambil SEMUA history untuk security check ini
         const allHistories = await prisma.securityCheckResponseHistory.findMany(
           {
             where: {
@@ -96,20 +103,31 @@ export async function getReportData(filters: {
           }
         );
 
-        // Group history by checklistItemId
         const historyByChecklistItem = new Map();
+        const historyByVehicleItem = new Map();
         allHistories.forEach((history) => {
-          const existing =
-            historyByChecklistItem.get(history.checklistItemId) || [];
-          existing.push(history);
-          historyByChecklistItem.set(history.checklistItemId, existing);
+          if (history.checklistItemId) {
+            const existing =
+              historyByChecklistItem.get(history.checklistItemId) || [];
+            existing.push(history);
+            historyByChecklistItem.set(history.checklistItemId, existing);
+          }
+
+          if (history.vehicleInspectionItemId) {
+            const existing =
+              historyByVehicleItem.get(history.vehicleInspectionItemId) || [];
+            existing.push(history);
+            historyByVehicleItem.set(history.vehicleInspectionItemId, existing);
+          }
         });
 
-        // Inject history ke responses
         const responsesWithHistory = container.securityCheck.responses.map(
           (response) => ({
             ...response,
-            history: historyByChecklistItem.get(response.checklistItemId) || [],
+            history: response.checklistItemId
+              ? historyByChecklistItem.get(response.checklistItemId) || []
+              : historyByVehicleItem.get(response.vehicleInspectionItemId) ||
+                [],
           })
         );
 
@@ -125,7 +143,6 @@ export async function getReportData(filters: {
 
     let filtered = containersWithHistory;
 
-    // Search filter
     if (search) {
       const searchLower = search.toLowerCase();
       filtered = filtered.filter(
@@ -138,7 +155,6 @@ export async function getReportData(filters: {
       );
     }
 
-    // Status filter
     if (status === "completed") {
       filtered = filtered.filter((c) => c.securityCheck && c.checkerData);
     } else if (status === "pending-checker") {
@@ -147,7 +163,6 @@ export async function getReportData(filters: {
       filtered = filtered.filter((c) => !c.securityCheck);
     }
 
-    // Date range filter
     if (dateFrom) {
       const fromDate = new Date(dateFrom);
       fromDate.setHours(0, 0, 0, 0);

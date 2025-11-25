@@ -24,15 +24,25 @@ export default async function NewInspectionPage() {
     orderBy: { order: "asc" },
   });
 
-  // Fetch inspector names by role
+  const vehicleCategories = await prisma.vehicleInspectionCategory.findMany({
+    include: {
+      items: {
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      },
+    },
+    orderBy: { order: "asc" },
+  });
+
   const inspectorNames = await getInspectorNamesByRole(session.role);
 
   return (
     <DashboardLayout session={session}>
       <InspectionFormUnified
+        userRole="SECURITY"
         mode="create"
         categories={categories}
-        userRole={session.role as "SECURITY"}
+        vehicleCategories={vehicleCategories}
         inspectorNames={inspectorNames}
       />
     </DashboardLayout>

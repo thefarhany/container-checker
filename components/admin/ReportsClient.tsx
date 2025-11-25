@@ -14,13 +14,19 @@ interface HistoryItem {
 
 interface ChecklistItem {
   itemText: string;
-  category: { name: string };
+  category: { name: string } | null;
+}
+
+interface VehicleInspectionItem {
+  itemName: string;
+  category: { name: string } | null;
 }
 
 interface SecurityCheckResponse {
   checked: boolean;
   notes: string | null;
-  checklistItem: ChecklistItem;
+  checklistItem?: ChecklistItem | null;
+  vehicleInspectionItem?: VehicleInspectionItem | null;
   history?: HistoryItem[];
 }
 
@@ -128,7 +134,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       statsCell.alignment = { horizontal: "center" };
 
       summarySheet.addRow([]);
-
       const headerRow = summarySheet.addRow([
         "No.",
         "No. Kontainer",
@@ -225,14 +230,13 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         }
       });
 
-      // ===== SHEET 2: DETAIL CHECKLIST (WITH HISTORY) =====
-      setExportProgress("Membuat sheet detail checklist...");
-      const detailSheet = workbook.addWorksheet("Detail Checklist");
+      // ===== SHEET 2: SECURITY CHECKLIST (hanya checklistItem) =====
+      setExportProgress("Membuat sheet security checklist...");
+      const detailSheet = workbook.addWorksheet("Security Checklist");
 
-      // Title
       detailSheet.mergeCells("A1:M1");
       const detailTitle = detailSheet.getCell("A1");
-      detailTitle.value = "DETAIL CHECKLIST & HISTORY PER KONTAINER";
+      detailTitle.value = "DETAIL SECURITY CHECKLIST & HISTORY PER KONTAINER";
       detailTitle.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
       detailTitle.alignment = { horizontal: "center", vertical: "middle" };
       detailTitle.fill = {
@@ -243,8 +247,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       detailSheet.getRow(1).height = 30;
 
       detailSheet.addRow([]);
-
-      // ✅ Header row dengan history columns
       const detailHeaderRow = detailSheet.addRow([
         "No. Kontainer",
         "Perusahaan",
@@ -260,7 +262,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         "Jumlah History",
         "Detail History",
       ]);
-
       detailHeaderRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
       detailHeaderRow.fill = {
         type: "pattern",
@@ -274,33 +275,30 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       };
       detailHeaderRow.height = 30;
 
-      // Column widths
       detailSheet.columns = [
-        { width: 18 }, // No. Kontainer
-        { width: 28 }, // Perusahaan
-        { width: 20 }, // Kategori
-        { width: 45 }, // Checklist Item
-        { width: 8 }, // Status
-        { width: 30 }, // Catatan Terkini
-        { width: 18 }, // Inspector
-        { width: 15 }, // Tanggal Periksa
-        { width: 15 }, // No. Segel
-        { width: 15 }, // No. Plat
-        { width: 18 }, // No. UTC
-        { width: 12 }, // Jumlah History
-        { width: 60 }, // Detail History
+        { width: 18 },
+        { width: 28 },
+        { width: 20 },
+        { width: 45 },
+        { width: 8 },
+        { width: 30 },
+        { width: 18 },
+        { width: 15 },
+        { width: 15 },
+        { width: 15 },
+        { width: 18 },
+        { width: 12 },
+        { width: 60 },
       ];
 
-      // ✅ Flat data structure with history
       const containersWithSecurity = containers.filter((c) => c.securityCheck);
-
       containersWithSecurity.forEach((container) => {
         const responses = container.securityCheck!.responses || [];
+        // ✅ FILTER: Hanya checklistItem
+        const securityResponses = responses.filter((r) => r.checklistItem);
 
-        responses.forEach((response) => {
+        securityResponses.forEach((response) => {
           const history = response.history || [];
-
-          // Format history text
           const historyText = history
             .map((h, idx) => {
               const dateStr = new Date(h.changedAt).toLocaleString("id-ID", {
@@ -319,8 +317,8 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           const row = detailSheet.addRow([
             container.containerNo,
             container.companyName,
-            response.checklistItem.category.name,
-            response.checklistItem.itemText,
+            response.checklistItem?.category?.name || "-",
+            response.checklistItem?.itemText || "-",
             response.checked ? "✓" : "✗",
             response.notes || "-",
             container.securityCheck!.inspectorName,
@@ -334,12 +332,11 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
             historyText || "Tidak ada history",
           ]);
 
-          // Calculate row height based on history count
           const minHeight = 20;
           const historyHeight = Math.max(minHeight, history.length * 15 + 10);
-          row.height = Math.min(historyHeight, 200); // Max 200px
-
+          row.height = Math.min(historyHeight, 200);
           row.alignment = { vertical: "top", wrapText: true };
+
           row.eachCell((cell, colNum) => {
             cell.border = {
               top: { style: "thin" },
@@ -348,7 +345,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
               right: { style: "thin" },
             };
 
-            // Status column (E) color coding
             if (colNum === 5) {
               if (response.checked) {
                 cell.fill = {
@@ -368,12 +364,10 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
               cell.alignment = { horizontal: "center", vertical: "middle" };
             }
 
-            // Jumlah History column (L) center align
             if (colNum === 12) {
               cell.alignment = { horizontal: "center", vertical: "middle" };
             }
 
-            // Detail History column (M) top align with wrap
             if (colNum === 13) {
               cell.alignment = {
                 vertical: "top",
@@ -385,13 +379,10 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         });
       });
 
-      // ✅ Add AutoFilter
       detailSheet.autoFilter = {
         from: { row: 3, column: 1 },
         to: { row: detailSheet.rowCount, column: 13 },
       };
-
-      // ✅ Freeze panes
       detailSheet.views = [
         {
           state: "frozen",
@@ -402,22 +393,184 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
         },
       ];
 
-      // ===== SHEET 3: FOTO (HORIZONTAL PER CONTAINER) =====
+      // ===== SHEET 3: VEHICLE INSPECTION (hanya vehicleInspectionItem) =====
+      setExportProgress("Membuat sheet vehicle inspection...");
+      const vehicleSheet = workbook.addWorksheet("Vehicle Inspection");
+
+      vehicleSheet.mergeCells("A1:M1");
+      const vehicleTitle = vehicleSheet.getCell("A1");
+      vehicleTitle.value = "DETAIL VEHICLE INSPECTION & HISTORY PER KONTAINER";
+      vehicleTitle.font = { size: 16, bold: true, color: { argb: "FFFFFFFF" } };
+      vehicleTitle.alignment = { horizontal: "center", vertical: "middle" };
+      vehicleTitle.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF4472C4" }, // Biru untuk bedakan
+      };
+      vehicleSheet.getRow(1).height = 30;
+
+      vehicleSheet.addRow([]);
+      const vehicleHeaderRow = vehicleSheet.addRow([
+        "No. Kontainer",
+        "Perusahaan",
+        "Kategori",
+        "Item Inspeksi",
+        "Status",
+        "Catatan Terkini",
+        "Inspector",
+        "Tanggal Periksa",
+        "No. Segel",
+        "No. Plat",
+        "No. UTC",
+        "Jumlah History",
+        "Detail History",
+      ]);
+      vehicleHeaderRow.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      vehicleHeaderRow.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF5B9BD5" }, // Biru muda
+      };
+      vehicleHeaderRow.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      vehicleHeaderRow.height = 30;
+
+      vehicleSheet.columns = [
+        { width: 18 },
+        { width: 28 },
+        { width: 20 },
+        { width: 45 },
+        { width: 8 },
+        { width: 30 },
+        { width: 18 },
+        { width: 15 },
+        { width: 15 },
+        { width: 15 },
+        { width: 18 },
+        { width: 12 },
+        { width: 60 },
+      ];
+
+      containersWithSecurity.forEach((container) => {
+        const responses = container.securityCheck!.responses || [];
+        // ✅ FILTER: Hanya vehicleInspectionItem
+        const vehicleResponses = responses.filter(
+          (r) => r.vehicleInspectionItem
+        );
+
+        vehicleResponses.forEach((response) => {
+          const history = response.history || [];
+          const historyText = history
+            .map((h, idx) => {
+              const dateStr = new Date(h.changedAt).toLocaleString("id-ID", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              });
+              return `[${history.length - idx}] ${h.checked ? "✓" : "✗"} ${
+                h.notes || "Tidak ada catatan"
+              } (${dateStr})`;
+            })
+            .join("\n");
+
+          const row = vehicleSheet.addRow([
+            container.containerNo,
+            container.companyName,
+            response.vehicleInspectionItem?.category?.name || "-",
+            response.vehicleInspectionItem?.itemName || "-",
+            response.checked ? "✓" : "✗",
+            response.notes || "-",
+            container.securityCheck!.inspectorName,
+            new Date(container.securityCheck!.createdAt).toLocaleDateString(
+              "id-ID"
+            ),
+            container.sealNo,
+            container.plateNo,
+            container.checkerData?.utcNo || "-",
+            history.length,
+            historyText || "Tidak ada history",
+          ]);
+
+          const minHeight = 20;
+          const historyHeight = Math.max(minHeight, history.length * 15 + 10);
+          row.height = Math.min(historyHeight, 200);
+          row.alignment = { vertical: "top", wrapText: true };
+
+          row.eachCell((cell, colNum) => {
+            cell.border = {
+              top: { style: "thin" },
+              left: { style: "thin" },
+              bottom: { style: "thin" },
+              right: { style: "thin" },
+            };
+
+            if (colNum === 5) {
+              if (response.checked) {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFC6EFCE" },
+                };
+                cell.font = { color: { argb: "FF006100" }, bold: true };
+              } else {
+                cell.fill = {
+                  type: "pattern",
+                  pattern: "solid",
+                  fgColor: { argb: "FFFFC7CE" },
+                };
+                cell.font = { color: { argb: "FF9C0006" }, bold: true };
+              }
+              cell.alignment = { horizontal: "center", vertical: "middle" };
+            }
+
+            if (colNum === 12) {
+              cell.alignment = { horizontal: "center", vertical: "middle" };
+            }
+
+            if (colNum === 13) {
+              cell.alignment = {
+                vertical: "top",
+                horizontal: "left",
+                wrapText: true,
+              };
+            }
+          });
+        });
+      });
+
+      vehicleSheet.autoFilter = {
+        from: { row: 3, column: 1 },
+        to: { row: vehicleSheet.rowCount, column: 13 },
+      };
+      vehicleSheet.views = [
+        {
+          state: "frozen",
+          xSplit: 0,
+          ySplit: 3,
+          topLeftCell: "A4",
+          activeCell: "A4",
+        },
+      ];
+
+      // ===== SHEET 4: FOTO =====
       setExportProgress("Membuat sheet foto...");
       const photoSheet = workbook.addWorksheet("Foto");
 
-      // ✅ Calculate max photos untuk menentukan merge width
       const maxPhotos = Math.max(
         ...containers.map(
           (c) =>
             (c.securityCheck?.photos?.length || 0) +
             (c.checkerData?.photos?.length || 0)
         ),
-        1 // Minimum 1
+        1
       );
 
-      // Title merge dinamis berdasarkan jumlah foto terbanyak
-      const titleEndColumn = String.fromCharCode(67 + maxPhotos); // C=67, jadi C+maxPhotos untuk kolom akhir
+      const titleEndColumn = String.fromCharCode(67 + maxPhotos);
       photoSheet.mergeCells(`A1:${titleEndColumn}1`);
       const photoTitle = photoSheet.getCell("A1");
       photoTitle.value = "DOKUMENTASI FOTO PEMERIKSAAN";
@@ -431,8 +584,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       photoSheet.getRow(1).height = 30;
 
       photoSheet.addRow([]);
-
-      // ✅ Header tanpa "Tipe"
       const photoHeaderRow = photoSheet.addRow([
         "No.",
         "No. Kontainer",
@@ -448,10 +599,9 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
       photoHeaderRow.alignment = { horizontal: "center", vertical: "middle" };
       photoHeaderRow.height = 25;
 
-      // Set column widths
-      photoSheet.getColumn(1).width = 5; // No
-      photoSheet.getColumn(2).width = 20; // No. Kontainer
-      photoSheet.getColumn(3).width = 30; // Perusahaan
+      photoSheet.getColumn(1).width = 5;
+      photoSheet.getColumn(2).width = 20;
+      photoSheet.getColumn(3).width = 30;
 
       let rowCounter = 1;
       let currentPhotoRow = 4;
@@ -473,13 +623,11 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
 
         if (allPhotos.length === 0) continue;
 
-        // ✅ Create row tanpa kolom "Tipe"
         const row = photoSheet.addRow([
           rowCounter++,
           container.containerNo,
           container.companyName,
         ]);
-
         row.height = 120;
         row.eachCell((cell) => {
           cell.border = {
@@ -491,16 +639,14 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
           cell.alignment = { vertical: "middle", horizontal: "center" };
         });
 
-        // ✅ Embed images horizontally starting from column D (index 4)
         for (let j = 0; j < allPhotos.length; j++) {
           const photo = allPhotos[j];
+          const colIndex = 4 + j;
 
-          const colIndex = 4 + j; // Start from column D (4), E (5), F (6), etc.
           if (!photoSheet.getColumn(colIndex).width) {
             photoSheet.getColumn(colIndex).width = 30;
           }
 
-          // Add border to image cell
           const imageCell = photoSheet.getCell(currentPhotoRow, colIndex);
           imageCell.border = {
             top: { style: "thin" },
@@ -509,7 +655,6 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
             right: { style: "thin" },
           };
 
-          // Download and embed image
           const base64 = await downloadImageAsBase64(photo.url);
           if (base64) {
             const extension = photo.filename.toLowerCase().endsWith(".png")
@@ -519,18 +664,16 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
               base64: base64,
               extension: extension,
             });
-
             photoSheet.addImage(imageId, {
               tl: { col: colIndex - 1, row: currentPhotoRow - 1 },
               ext: { width: 200, height: 110 },
             });
           }
         }
-
         currentPhotoRow++;
       }
 
-      // Save file
+      // ===== SAVE FILE =====
       setExportProgress("Menyimpan file...");
       const buffer = await workbook.xlsx.writeBuffer();
       const blob = new Blob([buffer], {
@@ -557,44 +700,34 @@ export default function ReportsClient({ containers }: ReportsClientProps) {
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
-      <div className="flex items-center gap-3 mb-4">
-        <FileSpreadsheet className="h-6 w-6 text-purple-600" />
-        <div>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Export Laporan
-          </h3>
-          <p className="text-sm text-gray-500">
-            Export data dengan gambar berjajar horizontal
-          </p>
-        </div>
-      </div>
-
-      <button
-        onClick={exportToExcel}
-        disabled={isExporting || containers.length === 0}
-        className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-      >
-        {isExporting ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm font-medium">{exportProgress}</span>
-          </>
-        ) : (
-          <>
-            <FileSpreadsheet className="h-5 w-5" />
-            <span className="text-sm font-medium">
+    <div className="space-y-4">
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-lg font-semibold text-black mb-2">
+          Export Laporan
+        </h2>
+        <button
+          onClick={exportToExcel}
+          disabled={isExporting || containers.length === 0}
+          className="flex items-center w-full text-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+        >
+          {isExporting ? (
+            <>
+              <Loader2 className="animate-spin" size={20} />
+              {exportProgress}
+            </>
+          ) : (
+            <>
+              <FileSpreadsheet size={20} />
               Export Excel ({containers.length} data)
-            </span>
-          </>
+            </>
+          )}
+        </button>
+        {containers.length === 0 && (
+          <p className="text-sm text-red-600 mt-2">
+            Tidak ada data untuk diexport.
+          </p>
         )}
-      </button>
-
-      {containers.length === 0 && (
-        <p className="text-sm text-gray-500 text-center mt-4">
-          Tidak ada data untuk diexport.
-        </p>
-      )}
+      </div>
     </div>
   );
 }

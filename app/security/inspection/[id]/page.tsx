@@ -23,7 +23,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
 
   const resolvedParams = await params;
 
-  // ✅ PERBAIKAN: Ambil inspection tanpa history dulu
+  // ✅ TIDAK DIUBAH: Ambil inspection tanpa history dulu
   const inspection = await prisma.securityCheck.findUnique({
     where: { id: resolvedParams.id },
     include: {
@@ -32,6 +32,12 @@ export default async function InspectionDetailPage({ params }: PageProps) {
       responses: {
         include: {
           checklistItem: {
+            include: {
+              category: true,
+            },
+          },
+          // ✅ TAMBAHAN: Include vehicleInspectionItem juga
+          vehicleInspectionItem: {
             include: {
               category: true,
             },
@@ -45,7 +51,7 @@ export default async function InspectionDetailPage({ params }: PageProps) {
     notFound();
   }
 
-  // ✅ PERBAIKAN: Ambil SEMUA history untuk security check ini berdasarkan checklistItemId
+  // ✅ TIDAK DIUBAH: Ambil SEMUA history untuk security check ini
   const allHistories = await prisma.securityCheckResponseHistory.findMany({
     where: {
       securityCheckId: resolvedParams.id,
@@ -62,20 +68,36 @@ export default async function InspectionDetailPage({ params }: PageProps) {
     },
   });
 
-  // ✅ PERBAIKAN: Group history by checklistItemId
-  const historyByChecklistItem = new Map<string, typeof allHistories>();
+  // ✅ PERUBAHAN: Group history by checklistItemId AND vehicleInspectionItemId
+  const historyByChecklistItem = new Map();
+  const historyByVehicleItem = new Map();
+
   allHistories.forEach((history) => {
-    const existing = historyByChecklistItem.get(history.checklistItemId) || [];
-    existing.push(history);
-    historyByChecklistItem.set(history.checklistItemId, existing);
+    if (history.checklistItemId) {
+      const existing =
+        historyByChecklistItem.get(history.checklistItemId) || [];
+      existing.push(history);
+      historyByChecklistItem.set(history.checklistItemId, existing);
+    }
+
+    // ✅ TAMBAHAN: Group history for vehicle items
+    if (history.vehicleInspectionItemId) {
+      const existing =
+        historyByVehicleItem.get(history.vehicleInspectionItemId) || [];
+      existing.push(history);
+      historyByVehicleItem.set(history.vehicleInspectionItemId, existing);
+    }
   });
 
-  // ✅ PERBAIKAN: Inject history ke responses berdasarkan checklistItemId
+  // ✅ PERUBAHAN: Inject history ke responses untuk checklist dan vehicle
   const responsesWithHistory = inspection.responses.map((response) => ({
     ...response,
-    history: historyByChecklistItem.get(response.checklistItemId) || [],
+    history: response.checklistItemId
+      ? historyByChecklistItem.get(response.checklistItemId) || []
+      : historyByVehicleItem.get(response.vehicleInspectionItemId) || [],
   }));
 
+  // ✅ TIDAK DIUBAH: Fetch categories
   const categories = await prisma.checklistCategory.findMany({
     include: {
       items: {
@@ -86,19 +108,31 @@ export default async function InspectionDetailPage({ params }: PageProps) {
     orderBy: { order: "asc" },
   });
 
+  // ✅ TAMBAHAN: Fetch vehicle categories
+  const vehicleCategories = await prisma.vehicleInspectionCategory.findMany({
+    include: {
+      items: {
+        where: { isActive: true },
+        orderBy: { order: "asc" },
+      },
+    },
+    orderBy: { order: "asc" },
+  });
+
+  // ✅ TIDAK DIUBAH: Fetch inspector names
   const inspectorNames = await getInspectorNamesByRole(session.role);
 
   return (
     <DashboardLayout session={session}>
       <InspectionFormUnified
+        userRole="SECURITY"
         mode="view"
         categories={categories}
+        vehicleCategories={vehicleCategories}
         inspection={{
           ...inspection,
           responses: responsesWithHistory,
         }}
-        backLink="/security/dashboard"
-        userRole={session.role as "SECURITY"}
         inspectorNames={inspectorNames}
       />
     </DashboardLayout>

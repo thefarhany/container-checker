@@ -6,6 +6,7 @@ import { submitCheckerData } from "@/app/actions/checker";
 import { ArrowLeft, Check, History, X, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import ImageUploadClientUnified from "@/components/checker/ImageUploadClientUnified";
+import Image from "next/image";
 
 type FormMode = "create" | "view";
 
@@ -614,7 +615,7 @@ export default function CheckerFormUnified({
                                     </p>
                                     {hist.notes && (
                                       <p className="text-xs text-gray-700 mt-2 bg-white p-2 rounded">
-                                        "{hist.notes}"
+                                        &quot;{hist.notes}&quot;
                                       </p>
                                     )}
                                   </div>
@@ -652,10 +653,13 @@ export default function CheckerFormUnified({
                   key={photo.id}
                   className="relative rounded-lg overflow-hidden border-2 border-gray-200"
                 >
-                  <img
+                  <Image
                     src={photo.url}
                     alt={photo.filename}
-                    className="w-full h-40 object-cover"
+                    width={800}
+                    height={600}
+                    className="w-full h-auto rounded-lg shadow-md"
+                    unoptimized
                   />
                 </div>
               ))}
@@ -708,10 +712,13 @@ export default function CheckerFormUnified({
                   key={photo.id}
                   className="relative rounded-lg overflow-hidden border-2 border-gray-200"
                 >
-                  <img
+                  <Image
                     src={photo.url}
                     alt={photo.filename}
-                    className="w-full h-40 object-cover"
+                    width={800}
+                    height={600}
+                    className="w-full h-auto rounded-lg shadow-md"
+                    unoptimized
                   />
                 </div>
               ))}

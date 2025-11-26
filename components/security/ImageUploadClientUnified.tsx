@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Upload, X } from "lucide-react";
+import Image from "next/image";
 
 type UploadMode = "create" | "edit";
 
@@ -187,12 +188,15 @@ export default function ImageUploadClientUnified({
                   }`}
                 >
                   <div className="relative w-full h-32 bg-slate-200">
-                    <img
+                    <Image
                       src={photo.url}
                       alt={photo.filename}
-                      className={`w-full h-full object-cover ${
-                        isDeleted ? "opacity-50" : ""
+                      width={300}
+                      height={192}
+                      className={`w-full h-48 object-cover rounded-lg transition ${
+                        isDeleted ? "opacity-30 grayscale" : ""
                       }`}
+                      unoptimized
                     />
                   </div>
 
@@ -234,10 +238,13 @@ export default function ImageUploadClientUnified({
                 className="relative group rounded-lg overflow-hidden border border-slate-300 bg-slate-50"
               >
                 <div className="relative w-full h-32 bg-slate-200">
-                  <img
+                  <Image
                     src={preview.url}
                     alt={preview.name}
-                    className="w-full h-full object-cover"
+                    width={300}
+                    height={192}
+                    className="w-full h-48 object-cover rounded-lg"
+                    unoptimized
                   />
                 </div>
 

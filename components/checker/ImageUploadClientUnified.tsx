@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { Upload, X } from "lucide-react";
+import Image from "next/image";
 
 interface PreviewItem {
   id: string;
@@ -156,10 +157,13 @@ export default function ImageUploadClientUnified({
                 key={photo.id}
                 className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200"
               >
-                <img
+                <Image
                   src={photo.url}
                   alt={photo.filename}
-                  className="h-full w-full object-cover"
+                  width={300}
+                  height={192}
+                  className="w-full h-48 object-cover rounded-lg"
+                  unoptimized
                 />
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
                   <p className="truncate text-xs text-white">
@@ -173,10 +177,13 @@ export default function ImageUploadClientUnified({
                 key={preview.id}
                 className="group relative aspect-square overflow-hidden rounded-lg border border-gray-200"
               >
-                <img
+                <Image
                   src={preview.url}
                   alt={preview.name}
-                  className="h-full w-full object-cover"
+                  width={300}
+                  height={192}
+                  className="w-full h-48 object-cover rounded-lg"
+                  unoptimized
                 />
                 {mode !== "view" && (
                   <button

@@ -133,11 +133,14 @@ export default async function SubmitCheckerPage({ params }: PageProps) {
   const responsesWithHistory = container.securityCheck.responses.map(
     (response) => ({
       ...response,
-      history: response.checklistItemId
-        ? historyByChecklistItem.get(response.checklistItemId) || []
-        : historyByVehicleItem.get(response.vehicleInspectionItemId) || [],
+      checklistItem: response.checklistItem || undefined,
+      vehicleInspectionItem: response.vehicleInspectionItem || undefined,
+      history:
+        (response.checklistItemId
+          ? historyByChecklistItem.get(response.checklistItemId)
+          : historyByVehicleItem.get(response.vehicleInspectionItemId)) || [],
     })
-  ) as any;
+  );
 
   const inspectorNames = await getInspectorNamesByRole("CHECKER");
 

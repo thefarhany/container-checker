@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { createInspection, updateInspection } from "@/app/actions/inspections";
 import { ArrowLeft, Check, History, Trash2, X } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import ImageUploadClientUnified from "@/components/security/ImageUploadClientUnified";
 
 type FormMode = "create" | "edit" | "view";
@@ -853,10 +854,15 @@ export default function InspectionFormUnified({
                           : "border-gray-200"
                       }`}
                     >
-                      <img
+                      <Image
                         src={photo.url}
                         alt={photo.filename}
-                        className="w-full h-40 object-cover"
+                        width={300}
+                        height={192}
+                        className={`w-full h-48 object-cover rounded-lg transition ${
+                          isDeleted ? "opacity-30 grayscale" : ""
+                        }`}
+                        unoptimized
                       />
                       {isDeleted ? (
                         <button
@@ -897,10 +903,13 @@ export default function InspectionFormUnified({
                     key={photo.id}
                     className="relative rounded-lg overflow-hidden border-2 border-gray-200"
                   >
-                    <img
+                    <Image
                       src={photo.url}
                       alt={photo.filename}
-                      className="w-full h-40 object-cover"
+                      width={300}
+                      height={192}
+                      className="w-full h-48 object-cover rounded-lg shadow-md"
+                      unoptimized
                     />
                   </div>
                 ))}
